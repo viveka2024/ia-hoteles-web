@@ -55,7 +55,6 @@
       border: 1px solid #e0e0e0;
       padding: 15px;
       border-radius: 6px;
-      white-space: pre-wrap;
       font-family: monospace;
     }
     .response a {
@@ -89,27 +88,28 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn = document.getElementById("sendBtn");
     const responseArea = document.getElementById("responseArea");
 
-    // Función que convierte Markdown y URLs planas en enlaces clicables
+    // Convierte Markdown [texto](url) en enlaces y URLs planas en enlaces
     function linkify(text) {
-      // 1) Markdown [texto](url) → <a>texto</a>
+      // Markdown links
       let html = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        /\[([^\]]+)\]\((https?:\/\/[^
+\s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
-      // 2) URLs planas → <a>url</a>
+      // URLs planas (que no formen parte de un href)
       html = html.replace(
-        /(https?:\/\/[^\s]+)/g,
+        /(?<!href=["'])(https?:\/\/[^
+\s]+)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
       );
       return html;
     }
 
-    // Función para enviar el mensaje
+    // Envía el mensaje y procesa la respuesta
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
-
-      responseArea.textContent = "Pensando...";
+      responseArea.innerHTML = "Pensando...";
 
       try {
         const res = await fetch("/api/chat", {
@@ -117,32 +117,29 @@ Escribe tu consulta y te responderé en breve.
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: input }),
         });
-
         const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
         }
-
         const data = await res.json();
-        // Convertimos el reply aplicando linkify
-        responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
-
+        // Aplicar linkify y conservar saltos de línea usando <br>
+        const withLinks = linkify(data.reply || "");
+        responseArea.innerHTML = withLinks.replace(/\n/g, '<br>');
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
-        console.error("Fallo en el cliente:", err);
+        console.error(err);
         return;
       }
 
-      // Limpiar y enfocar el textarea
-      textarea.value = '';
+      // Limpiar textarea y enfocar
+      textarea.value = "";
       textarea.focus();
     }
 
     // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
-
     // Enter para enviar; Shift+Enter para salto de línea
     textarea.addEventListener("keydown", function(e) {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -153,3 +150,4 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
+
