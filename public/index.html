@@ -89,24 +89,24 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn = document.getElementById("sendBtn");
     const responseArea = document.getElementById("responseArea");
 
-    // Convierte Markdown y URLs planas en enlaces, excluyendo puntuación final
+    // Convierte Markdown y URLs planas en enlaces, excluyendo la puntuación final
     function linkify(text) {
-      // 1) Markdown links [texto](url)
+      // Links en Markdown
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^
-      \s)]+)\)/g,
+\s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
-      // 2) URLs planas sin incluir . , ! ? al final
+      // URLs planas sin incluir . , ! ? al final
       html = html.replace(
         /(https?:\/\/[^
-      \s.,!?"')]+)([.,!?"')]?)/g,
+\s.,!?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
     }
 
-    // Función para enviar el mensaje
+    // Envía el mensaje al asistente
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
@@ -122,6 +122,34 @@ Escribe tu consulta y te responderé en breve.
 
         if (!res.ok) {
           const isJson = res.headers.get("content-type")?.includes("application/json");
-<|diff_marker|>PATCH A
+          const errorText = isJson ? (await res.json()).error : await res.text();
+          responseArea.textContent = `❌ Error del servidor: ${errorText}`;
+          return;
+        }
 
+        const data = await res.json();
+        responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
+      } catch (err) {
+        responseArea.textContent = `❌ Error inesperado: ${err.message}`;
+        console.error("Fallo en el cliente:", err);
+        return;
+      }
 
+      // Limpia el textarea y enfoca de nuevo
+      textarea.value = '';
+      textarea.focus();
+    }
+
+    // Click en el botón envía el mensaje
+    sendBtn.addEventListener("click", sendMessage);
+
+    // Enter para enviar; Shift+Enter para salto de línea
+    textarea.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
