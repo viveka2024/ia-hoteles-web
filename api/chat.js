@@ -1,12 +1,10 @@
 import OpenAI from "openai";
 
-// Inicializa el cliente de OpenAI con la API Key
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export default async function handler(req, res) {
-  // Logs para depuración
   console.log("💡 Request a /api/chat");
   console.log("🔑 Assistant ID usado:", process.env.ASSISTANT_ID);
 
@@ -23,24 +21,18 @@ export default async function handler(req, res) {
     // 1) Crear hilo de conversación
     const thread = await openai.beta.threads.create();
 
-    // 2) Mensaje de sistema para reforzar contexto hotelero
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "system",
-      content: "Eres IA Hoteles Web, un asistente especializado en información, reservas, servicios y recomendaciones hoteleras. Responde siempre en español con tono profesional y amable.",
-    });
-
-    // 3) Añadir mensaje del usuario
+    // 2) Añadir mensaje del usuario
     await openai.beta.threads.messages.create(thread.id, {
       role: "user",
       content: message,
     });
 
-    // 4) Ejecutar el asistente configurado con ASSISTANT_ID
+    // 3) Ejecutar el asistente configurado con ASSISTANT_ID
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: process.env.ASSISTANT_ID,
     });
 
-    // 5) Esperar hasta que termine
+    // 4) Esperar hasta que termine
     let status = "queued";
     while (status !== "completed" && status !== "failed" && status !== "cancelled") {
       const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
@@ -54,7 +46,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: `La ejecución terminó con estado: ${status}` });
     }
 
-    // 6) Obtener todos los mensajes y buscar la respuesta del asistente
+    // 5) Obtener todos los mensajes y buscar la respuesta del asistente
     const messages = await openai.beta.threads.messages.list(thread.id);
     const assistantMsg = messages.data.find(m => m.role === "assistant");
     const reply = assistantMsg?.content?.[0]?.text?.value;
@@ -82,3 +74,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: errorMsg });
   }
 }
+
