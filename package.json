@@ -1,6 +1,7 @@
 {
-  "name": "ia-coach",
+  "name": "ia-hoteles-web",
   "version": "1.0.0",
+  "description": "Asistente IA especializado en Información, reservas, servicios y recomendaciones hoteleras",
   "type": "module",
   "dependencies": {
     "openai": "^4.26.1"
