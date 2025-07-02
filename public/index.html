@@ -89,18 +89,18 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn = document.getElementById("sendBtn");
     const responseArea = document.getElementById("responseArea");
 
-    // Convierte Markdown y URLs planas en enlaces, sin capturar punto final
+    // Convierte Markdown y URLs planas en enlaces, excluyendo puntuación final
     function linkify(text) {
-      // Markdown links
+      // 1) Markdown links [texto](url)
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^
-\s)]+)\)/g,
+      \s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
-      // URLs planas: captura URL sin punto/coma/pregunta último
+      // 2) URLs planas sin incluir . , ! ? al final
       html = html.replace(
         /(https?:\/\/[^
-\s.,!?"')]+)([.,!?"')]?)/g,
+      \s.,!?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
@@ -120,38 +120,8 @@ Escribe tu consulta y te responderé en breve.
           body: JSON.stringify({ message: input }),
         });
 
-        const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
-          const errorText = isJson ? (await res.json()).error : await res.text();
-          responseArea.textContent = `❌ Error del servidor: ${errorText}`;
-          return;
-        }
-
-        const data = await res.json();
-        responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
-
-      } catch (err) {
-        responseArea.textContent = `❌ Error inesperado: ${err.message}`;
-        console.error("Fallo en el cliente:", err);
-        return;
-      }
-
-      textarea.value = '';
-      textarea.focus();
-    }
-
-    // Enviar con botón
-    sendBtn.addEventListener("click", sendMessage);
-
-    // Enter para enviar; Shift+Enter para salto de línea
-    textarea.addEventListener("keydown", function(e) {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-  </script>
-</body>
-</html>
+          const isJson = res.headers.get("content-type")?.includes("application/json");
+<|diff_marker|>PATCH A
 
 
