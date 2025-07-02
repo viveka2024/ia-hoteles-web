@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IA Coach Personal</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #111;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-size: 16px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 15px;
+      background-color: #0070f3;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056c7;
+    }
+
+    h3 {
+      margin-top: 30px;
+      font-size: 18px;
+    }
+
+    pre {
+      background-color: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      padding: 15px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>IA Coach Personal y Profesional</h2>
+    <textarea id="userInput" placeholder="Escribe aquí tu consulta o tema..."></textarea><br>
+    <button onclick="sendMessage()">Enviar</button>
+    <h3>Respuesta:</h3>
+    <pre id="responseArea">Esperando lo que quieras compartir... Te leeré y escucharé atentamente, no estoy aquí para juzgar, lo que hablemos es confidencial y te haré preguntas poderosas que puedan ayudarte... <br><br>Seré tu Coach Personal y Profesional para todo lo que necesites</br></br> </pre>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("userInput").value;
+      const responseArea = document.getElementById("responseArea");
+      responseArea.textContent = "Pensando...";
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: input }),
+        });
+
+        const isJson = res.headers.get("content-type")?.includes("application/json");
+
+        if (!res.ok) {
+          const errorText = isJson ? (await res.json()).error : await res.text();
+          responseArea.textContent = `❌ Error del servidor: ${errorText}`;
+          return;
+        }
+
+        const data = await res.json();
+        responseArea.textContent = data.reply || "Sin respuesta del asistente.";
+
+      } catch (err) {
+        responseArea.textContent = `❌ Error inesperado: ${err.message}`;
+        console.error("Fallo en el cliente:", err);
+      }
+    }
+  </script>
+</body>
+</html>
