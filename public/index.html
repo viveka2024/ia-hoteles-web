@@ -50,13 +50,21 @@
       margin-top: 30px;
       font-size: 18px;
     }
-    pre {
+    /* Estilo para preservar saltos de línea y enlaces */
+    .response {
       background-color: #f9f9f9;
       border: 1px solid #e0e0e0;
       padding: 15px;
       border-radius: 6px;
       white-space: pre-wrap;
       font-family: monospace;
+    }
+    .response a {
+      color: #0070f3;
+      text-decoration: none;
+    }
+    .response a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -70,17 +78,25 @@
     <button id="sendBtn">Enviar</button>
 
     <h3>Respuesta:</h3>
-    <pre id="responseArea">
+    <div id="responseArea" class="response">
 Bienvenido a IA Hoteles Web. 
 Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y toda la información que necesites para tu estancia y tipo de viaje. 
 Escribe tu consulta y te responderé en breve.
-    </pre>
+    </div>
   </div>
 
   <script>
     const textarea = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
     const responseArea = document.getElementById("responseArea");
+
+    // Función para convertir Markdown [texto](url) en <a href>...
+    function markdownLinksToHTML(text) {
+      return text.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+      );
+    }
 
     // Función para enviar el mensaje
     async function sendMessage() {
@@ -101,20 +117,20 @@ Escribe tu consulta y te responderé en breve.
         if (!res.ok) {
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
-          // No limpiamos para que el usuario pueda corregir
           return;
         }
 
         const data = await res.json();
-        responseArea.textContent = data.reply || "Sin respuesta del asistente.";
+        // Convierto Markdown links a HTML y lo muestro
+        responseArea.innerHTML = markdownLinksToHTML(data.reply || "Sin respuesta del asistente.");
+
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
-        // No limpiamos para que el usuario pueda reenviar o corregir
         return;
       }
 
-      // Limpiar el textarea y devolver el foco para la siguiente pregunta
+      // Limpiar el textarea y devolver el foco
       textarea.value = '';
       textarea.focus();
     }
