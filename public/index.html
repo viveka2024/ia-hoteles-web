@@ -74,7 +74,7 @@
       id="userInput" 
       placeholder="¿En qué puedo ayudarte con tu reserva, servicios o información de hoteles?"
     ></textarea><br>
-    <button onclick="sendMessage()">Enviar</button>
+    <button id="sendBtn">Enviar</button>
 
     <h3>Respuesta:</h3>
     <pre id="responseArea">
@@ -85,9 +85,15 @@ Escribe tu consulta y te responderé en breve.
   </div>
 
   <script>
+    const textarea = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const responseArea = document.getElementById("responseArea");
+
+    // Función para enviar el mensaje
     async function sendMessage() {
-      const input = document.getElementById("userInput").value;
-      const responseArea = document.getElementById("responseArea");
+      const input = textarea.value.trim();
+      if (!input) return;  // no enviar si está vacío
+
       responseArea.textContent = "Pensando...";
 
       try {
@@ -113,7 +119,17 @@ Escribe tu consulta y te responderé en breve.
         console.error("Fallo en el cliente:", err);
       }
     }
+
+    // Enviar al hacer clic
+    sendBtn.addEventListener("click", sendMessage);
+
+    // Enter para enviar, Shift+Enter para salto de línea
+    textarea.addEventListener("keydown", function(e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
   </script>
 </body>
 </html>
-
