@@ -89,24 +89,22 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn = document.getElementById("sendBtn");
     const responseArea = document.getElementById("responseArea");
 
-    // Convierte Markdown y URLs planas en enlaces, excluyendo la puntuación final
+    // Función que convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
-      // Links en Markdown
+      // 1) Markdown [texto](url) → <a>texto</a>
       let html = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^
-\s)]+)\)/g,
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
-      // URLs planas sin incluir . , ! ? al final
+      // 2) URLs planas → <a>url</a>
       html = html.replace(
-        /(https?:\/\/[^
-\s.,!?"')]+)([.,!?"')]?)/g,
-        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
+        /(https?:\/\/[^\s]+)/g,
+        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
       );
       return html;
     }
 
-    // Envía el mensaje al asistente
+    // Función para enviar el mensaje
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
@@ -120,27 +118,29 @@ Escribe tu consulta y te responderé en breve.
           body: JSON.stringify({ message: input }),
         });
 
+        const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
-          const isJson = res.headers.get("content-type")?.includes("application/json");
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
         }
 
         const data = await res.json();
+        // Convertimos el reply aplicando linkify
         responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
+
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
         return;
       }
 
-      // Limpia el textarea y enfoca de nuevo
+      // Limpiar y enfocar el textarea
       textarea.value = '';
       textarea.focus();
     }
 
-    // Click en el botón envía el mensaje
+    // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
 
     // Enter para enviar; Shift+Enter para salto de línea
