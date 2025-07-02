@@ -109,7 +109,7 @@ Escribe tu consulta y te responderé en breve.
       const input = textarea.value.trim();
       if (!input) return;
 
-      responseArea.textContent = "Pensando...";
+      responseArea.textContent = "Escribiendo...";
 
       try {
         const res = await fetch("/api/chat", {
