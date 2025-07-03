@@ -100,18 +100,16 @@ Escribe tu consulta y te responderé en breve.
   </div>
 
   <script>
-    const textarea = document.getElementById("userInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const responseArea = document.getElementById("responseArea");
+    const textarea     = document.getElementById("userInput");
+    const sendBtn       = document.getElementById("sendBtn");
+    const responseArea  = document.getElementById("responseArea");
 
-    // Convierte Markdown y URLs planas en enlaces clicables
+    // Función que convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
-      // 1) Markdown [texto](url)
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
-      // 2) URLs planas sin incluir puntuación final
       html = html.replace(
         /(https?:\/\/[^\s.,!?\"')]+)([.,!?\"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
@@ -124,7 +122,8 @@ Escribe tu consulta y te responderé en breve.
       const input = textarea.value.trim();
       if (!input) return;
 
-      responseArea.textContent = "Pensando...";
+      // Mostramos “Escribiendo...” mientras esperamos respuesta
+      responseArea.textContent = "Escribiendo...";
 
       try {
         const res = await fetch("/api/chat", {
@@ -134,7 +133,7 @@ Escribe tu consulta y te responderé en breve.
         });
 
         if (!res.ok) {
-          const isJson = res.headers.get("content-type")?.includes("application/json");
+          const isJson    = res.headers.get("content-type")?.includes("application/json");
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
@@ -142,14 +141,13 @@ Escribe tu consulta y te responderé en breve.
 
         const data = await res.json();
         responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
-
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
         return;
       }
 
-      // Limpiar y enfocar el textarea
+      // Limpia y enfoca para la siguiente pregunta
       textarea.value = '';
       textarea.focus();
     }
