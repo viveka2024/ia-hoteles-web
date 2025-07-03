@@ -19,8 +19,8 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      /* Fondo semitransparente sobre la imagen */
-      background: rgba(255,255,255,0.85);
+      /* Fondo semitransparente rosado sobre la imagen */
+      background: rgba(255, 240, 245, 0.9);
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 0 15px rgba(0,0,0,0.05);
@@ -46,7 +46,7 @@
     }
     button {
       margin-top: 15px;
-      background-color: #0070f3; /* Botón azul */
+      background-color: #ff6b6b; /* botón en tono rosado/rojo suave */
       color: white;
       border: none;
       padding: 12px 20px;
@@ -57,7 +57,7 @@
       width: 100%;
     }
     button:hover {
-      background-color: #0056c7; /* Hover azul más oscuro */
+      background-color: #e05252; /* hover ligeramente más oscuro */
     }
     h3 {
       margin-top: 30px;
@@ -72,7 +72,7 @@
       font-family: monospace;
     }
     .response a {
-      color: #0070f3; /* Enlaces en azul */
+      color: #ff6b6b; /* enlaces en rosa para coherencia */
       text-decoration: none;
     }
     .response a:hover {
@@ -124,6 +124,7 @@ Escribe tu consulta y te responderé en breve.
       return html;
     }
 
+    // Función para enviar el mensaje
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
@@ -165,5 +166,3 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
-
-
