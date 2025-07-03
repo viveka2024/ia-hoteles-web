@@ -46,7 +46,7 @@
     }
     button {
       margin-top: 15px;
-      background-color: #6db034; /* botón verde */
+      background-color: #0070f3; /* Botón azul original */
       color: white;
       border: none;
       padding: 12px 20px;
@@ -57,7 +57,7 @@
       width: 100%;
     }
     button:hover {
-      background-color: #579228; /* verde más oscuro */
+      background-color: #0056c7; /* Hover azul más oscuro */
     }
     h3 {
       margin-top: 30px;
@@ -72,7 +72,7 @@
       font-family: monospace;
     }
     .response a {
-      color: #6db034; /* enlaces en verde */
+      color: #0070f3; /* Enlaces en azul */
       text-decoration: none;
     }
     .response a:hover {
@@ -111,11 +111,13 @@ Escribe tu consulta y te responderé en breve.
 
     function linkify(text) {
       let html = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        /\[([^\]]+)\]\((https?:\/\/[^
+        \s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
       html = html.replace(
-        /(https?:\/\/[^\s.,!?\"')]+)([.,!?\"')]?)/g,
+        /(https?:\/\/[^
+        \s.,!?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
@@ -129,4 +131,37 @@ Escribe tu consulta y te responderé en breve.
 
       try {
         const res = await fetch("/api/chat", {
-          method: "P
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: input }),
+        });
+
+        if (!res.ok) {
+          const isJson    = res.headers.get("content-type")?.includes("application/json");
+          const errorText = isJson ? (await res.json()).error : await res.text();
+          responseArea.textContent = `❌ Error del servidor: ${errorText}`;
+          return;
+        }
+
+        const data = await res.json();
+        responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
+      } catch (err) {
+        responseArea.textContent = `❌ Error inesperado: ${err.message}`;
+        console.error("Fallo en el cliente:", err);
+      }
+
+      textarea.value = '';
+      textarea.focus();
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
+
