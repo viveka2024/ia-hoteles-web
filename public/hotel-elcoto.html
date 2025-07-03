@@ -7,7 +7,11 @@
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
-      background-color: #f4f6f9;
+      /* Fondo con la captura del Hotel El Coto */
+      background-image: url('/logos/hotel-elcotob.png');
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
       margin: 0;
       padding: 20px;
       color: #333;
@@ -15,7 +19,8 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      background: #fff;
+      /* Fondo semitransparente sobre la imagen */
+      background: rgba(255,255,255,0.85);
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 0 15px rgba(0,0,0,0.05);
@@ -23,7 +28,7 @@
     #hotelLogo {
       display: block;
       margin: 0 auto 20px;
-      max-height: 140px; /* para que se vea bien */
+      max-height: 140px;
     }
     h2 {
       margin-top: 0;
@@ -41,7 +46,7 @@
     }
     button {
       margin-top: 15px;
-      background-color: #0070f3;
+      background-color: #6db034; /* botón verde */
       color: white;
       border: none;
       padding: 12px 20px;
@@ -52,7 +57,7 @@
       width: 100%;
     }
     button:hover {
-      background-color: #0056c7;
+      background-color: #579228; /* verde más oscuro */
     }
     h3 {
       margin-top: 30px;
@@ -67,7 +72,7 @@
       font-family: monospace;
     }
     .response a {
-      color: #0070f3;
+      color: #6db034; /* enlaces en verde */
       text-decoration: none;
     }
     .response a:hover {
@@ -77,7 +82,7 @@
 </head>
 <body>
   <div class="container">
-    <!-- Logo de Hotel El Coto -->
+    <!-- Logo de Gran Hotel del Coto -->
     <img
       id="hotelLogo"
       src="/logos/hotel-coto.jpg"
@@ -104,7 +109,6 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn       = document.getElementById("sendBtn");
     const responseArea  = document.getElementById("responseArea");
 
-    // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
@@ -117,52 +121,12 @@ Escribe tu consulta y te responderé en breve.
       return html;
     }
 
-    // Función para enviar el mensaje
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
 
-      // Mensaje de espera
       responseArea.textContent = "Escribiendo...";
 
       try {
         const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: input }),
-        });
-
-        if (!res.ok) {
-          const isJson    = res.headers.get("content-type")?.includes("application/json");
-          const errorText = isJson ? (await res.json()).error : await res.text();
-          responseArea.textContent = `❌ Error del servidor: ${errorText}`;
-          return;
-        }
-
-        const data = await res.json();
-        responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
-      } catch (err) {
-        responseArea.textContent = `❌ Error inesperado: ${err.message}`;
-        console.error("Fallo en el cliente:", err);
-        return;
-      }
-
-      // Limpia y enfoca para la siguiente pregunta
-      textarea.value = '';
-      textarea.focus();
-    }
-
-    // Enviar con botón
-    sendBtn.addEventListener("click", sendMessage);
-
-    // Enter para enviar; Shift+Enter para salto de línea
-    textarea.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-  </script>
-</body>
-</html>
-
+          method: "P
