@@ -7,8 +7,11 @@
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
-      /* Imagen de fondo de la página del hotel */
-      background: url('/logos/hotel-sierrab.png') center/cover no-repeat;
+      /* Fondo con la imagen del hotel */
+      background-image: url('/logos/hotel-sierrab.png');
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
       margin: 0;
       padding: 20px;
       color: #333;
@@ -16,7 +19,7 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      /* Fondo semitransparente para resaltar el chat sobre la imagen */
+      /* Fondo semitransparente sobre la imagen */
       background: rgba(255,255,255,0.85);
       padding: 30px;
       border-radius: 10px;
@@ -25,7 +28,7 @@
     #hotelLogo {
       display: block;
       margin: 0 auto 20px;
-      max-height: 140px; /* tamaño aumentado para legibilidad */
+      max-height: 140px;
     }
     h2 {
       margin-top: 0;
@@ -79,11 +82,11 @@
 </head>
 <body>
   <div class="container">
-    <!-- Logo de Hotel Sierra de Cazorla -->
+    <!-- Logo de Hotel Spa Sierra de Cazorla -->
     <img
       id="hotelLogo"
       src="/logos/hotel-sierra.jpg"
-      alt="Logo Hotel Sierra de Cazorla"
+      alt="Logo Hotel Spa Sierra de Cazorla"
     />
 
     <h2>IA Hotel Spa Sierra de Cazorla</h2>
@@ -106,7 +109,6 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn       = document.getElementById("sendBtn");
     const responseArea  = document.getElementById("responseArea");
 
-    // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
@@ -119,12 +121,10 @@ Escribe tu consulta y te responderé en breve.
       return html;
     }
 
-    // Función para enviar el mensaje
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
 
-      // Mensaje de espera
       responseArea.textContent = "Escribiendo...";
 
       try {
@@ -146,18 +146,13 @@ Escribe tu consulta y te responderé en breve.
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
-        return;
       }
 
-      // Limpia y enfoca para la siguiente pregunta
       textarea.value = '';
       textarea.focus();
     }
 
-    // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
-
-    // Enter para enviar; Shift+Enter para salto de línea
     textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -167,4 +162,3 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
-
