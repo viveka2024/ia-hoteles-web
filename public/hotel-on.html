@@ -7,7 +7,11 @@
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
-      background-color: #f4f6f9;
+      /* Fondo con la captura del On Hotel */
+      background-image: url('/logos/hotel-onb.png');
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
       margin: 0;
       padding: 20px;
       color: #333;
@@ -15,7 +19,8 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      background: #fff;
+      /* Fondo semitransparente sobre la imagen */
+      background: rgba(255,255,255,0.85);
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 0 15px rgba(0,0,0,0.05);
@@ -23,7 +28,7 @@
     #hotelLogo {
       display: block;
       margin: 0 auto 20px;
-      max-height: 140px; /* tamaño aumentado para legibilidad */
+      max-height: 140px;
     }
     h2 {
       margin-top: 0;
@@ -41,7 +46,7 @@
     }
     button {
       margin-top: 15px;
-      background-color: #0070f3;
+      background-color: #0070f3; /* Botón azul */
       color: white;
       border: none;
       padding: 12px 20px;
@@ -52,7 +57,7 @@
       width: 100%;
     }
     button:hover {
-      background-color: #0056c7;
+      background-color: #0056c7; /* Hover azul más oscuro */
     }
     h3 {
       margin-top: 30px;
@@ -67,7 +72,7 @@
       font-family: monospace;
     }
     .response a {
-      color: #0070f3;
+      color: #0070f3; /* Enlaces en azul */
       text-decoration: none;
     }
     .response a:hover {
@@ -77,11 +82,11 @@
 </head>
 <body>
   <div class="container">
-    <!-- Logo de Hotel On -->
+    <!-- Logo de On Hotel Oceanfront Matalascañas -->
     <img
       id="hotelLogo"
       src="/logos/hotel-on.png"
-      alt="Logo Hotel On"
+      alt="Logo On Hotel Oceanfront Matalascañas"
     />
 
     <h2>IA On Hotel Oceanfront Matalascañas</h2>
@@ -93,7 +98,7 @@
 
     <h3>Respuesta:</h3>
     <div id="responseArea" class="response">
-Bienvenido al asistente de ON Hotel Oceantront Matalascañas. 
+Bienvenido al asistente de On Hotel Oceanfront Matalascañas. 
 Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y todo lo que necesites para tu estancia. 
 Escribe tu consulta y te responderé en breve.
     </div>
@@ -107,22 +112,22 @@ Escribe tu consulta y te responderé en breve.
     // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
       let html = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        /\[([^\]]+)\]\((https?:\/\/[^
+        \s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
       html = html.replace(
-        /(https?:\/\/[^\s.,!?\"')]+)([.,!?\"')]?)/g,
+        /(https?:\/\/[^
+        \s.,!?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
     }
 
-    // Función para enviar el mensaje
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
 
-      // Mensaje de espera
       responseArea.textContent = "Escribiendo...";
 
       try {
@@ -144,18 +149,13 @@ Escribe tu consulta y te responderé en breve.
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
-        return;
       }
 
-      // Limpia y enfoca para la siguiente pregunta
       textarea.value = '';
       textarea.focus();
     }
 
-    // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
-
-    // Enter para enviar; Shift+Enter para salto de línea
     textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -165,4 +165,5 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
+
 
