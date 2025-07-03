@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,7 +24,7 @@
     #hotelLogo {
       display: block;
       margin: 0 auto 20px;
-      max-height: 80px;
+      max-height: 140px; /* aumentado para mayor legibilidad */
     }
     h2 {
       margin-top: 0;
@@ -104,7 +105,7 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn       = document.getElementById("sendBtn");
     const responseArea  = document.getElementById("responseArea");
 
-    // Función que convierte Markdown y URLs planas en enlaces clicables
+    // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
@@ -122,7 +123,7 @@ Escribe tu consulta y te responderé en breve.
       const input = textarea.value.trim();
       if (!input) return;
 
-      // Mostramos “Escribiendo...” mientras esperamos respuesta
+      // Mensaje de espera
       responseArea.textContent = "Escribiendo...";
 
       try {
@@ -165,3 +166,4 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
+```
