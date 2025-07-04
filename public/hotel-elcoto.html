@@ -141,7 +141,7 @@ Escribe tu consulta y te responderé en breve.
           return;
         }
         const data = await res.json();
-        responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
+        responseArea.innerHTML = data.reply || "Sin respuesta del asistente.";
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
