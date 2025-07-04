@@ -105,9 +105,9 @@ Escribe tu consulta y te responderé en breve.
   </div>
 
   <script>
-    const textarea    = document.getElementById("userInput");
-    const sendBtn     = document.getElementById("sendBtn");
-    const responseArea= document.getElementById("responseArea");
+    const textarea     = document.getElementById("userInput");
+    const sendBtn       = document.getElementById("sendBtn");
+    const responseArea  = document.getElementById("responseArea");
 
     // Convierte Markdown y URLs en enlaces clicables
     function linkify(text) {
@@ -135,13 +135,14 @@ Escribe tu consulta y te responderé en breve.
           body: JSON.stringify({ message: input }),
         });
         if (!res.ok) {
-          const isJson = res.headers.get("content-type").includes("application/json");
+          const isJson    = res.headers.get("content-type")?.includes("application/json");
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
         }
-        const data = await res.json();
-        responseArea.innerHTML = data.reply || "Sin respuesta del asistente.";
+        const { reply } = await res.json();
+        // Inyecta el HTML ya formateado (con <a>) directamente
+        responseArea.innerHTML = linkify(reply || "Sin respuesta del asistente.");
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
