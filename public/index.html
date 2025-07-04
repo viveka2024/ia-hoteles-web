@@ -127,7 +127,7 @@ Escribe tu consulta y te responderé en breve.
 
         const data = await res.json();
         // Convertimos el reply aplicando linkify
-        responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
+        responseArea.innerHTML = data.reply || "Sin respuesta del asistente.";
 
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
