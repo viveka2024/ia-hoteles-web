@@ -56,7 +56,17 @@ export default async function handler(req, res) {
     }
 
     // 6) Eliminar marcadores tipo 【n:m†source】
-    const finalReply = reply.replace(/【\d+:\d+†source】/g, "").trim();
+    let finalReply = reply.replace(/【\d+:\d+†source】/g, "").trim();
+
+    // 7) Añadir enlace de WhatsApp si detectamos intención de reserva
+const reservaRegex = /\b(reserva|reservar|disponibilidad|quiero reservar)\b/i;
+const hasWA = /wa\.me\/\d+/.test(finalReply);
+if (reservaRegex.test(finalReply) && !hasWA) {
+  finalReply +=
+    '\n\n👉 Para gestionar tu reserva, contáctanos por WhatsApp aquí: ' +
+    '<a href="https://wa.me/34678777204" target="_blank" rel="noopener noreferrer">' +
+    'Personal de Reservas</a>';
+}
 
     return res.status(200).json({ reply: finalReply });
 
@@ -77,4 +87,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: errorMsg });
   }
 }
-
