@@ -46,7 +46,7 @@
     }
     button {
       margin-top: 15px;
-      background-color: #0070f3; /* Botón azul original */
+      background-color: #0070f3; /* botón azul */
       color: white;
       border: none;
       padding: 12px 20px;
@@ -57,7 +57,7 @@
       width: 100%;
     }
     button:hover {
-      background-color: #0056c7; /* Hover azul más oscuro */
+      background-color: #0056c7; /* hover azul más oscuro */
     }
     h3 {
       margin-top: 30px;
@@ -72,7 +72,7 @@
       font-family: monospace;
     }
     .response a {
-      color: #0070f3; /* Enlaces en azul */
+      color: #0070f3; /* enlaces en azul */
       text-decoration: none;
     }
     .response a:hover {
@@ -105,10 +105,11 @@ Escribe tu consulta y te responderé en breve.
   </div>
 
   <script>
-    const textarea     = document.getElementById("userInput");
-    const sendBtn       = document.getElementById("sendBtn");
-    const responseArea  = document.getElementById("responseArea");
+    const textarea = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const responseArea = document.getElementById("responseArea");
 
+    // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^
@@ -117,12 +118,13 @@ Escribe tu consulta y te responderé en breve.
       );
       html = html.replace(
         /(https?:\/\/[^
-        \s.,!?"')]+)([.,!?"')]?)/g,
+        \s.,!\?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
     }
 
+    // Envía el mensaje al asistente y procesa la respuesta
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
@@ -136,8 +138,8 @@ Escribe tu consulta y te responderé en breve.
           body: JSON.stringify({ message: input }),
         });
 
+        const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
-          const isJson    = res.headers.get("content-type")?.includes("application/json");
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
@@ -154,7 +156,9 @@ Escribe tu consulta y te responderé en breve.
       textarea.focus();
     }
 
+    // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
+    // Enter para enviar; Shift+Enter para salto de línea
     textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -164,4 +168,3 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
-
