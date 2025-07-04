@@ -58,15 +58,16 @@ export default async function handler(req, res) {
     // 6) Limpiar marcadores tipo 【n:m†source】 antes de enviar al cliente
     let finalReply = reply.replace(/【\d+:\d+†source】/g, "").trim();
 
-    // 7) Añadir enlace de WhatsApp si el usuario habla de reservas y no está ya incluido
+   // 7) Añadir enlace de WhatsApp si el usuario habla de reservas y no está ya incluido
 const reservaRegex = /\b(reserva|reservar|disponibilidad|quiero reservar|pasar con reservas)\b/i;
 const hasWA = /wa\.me\/\d+/.test(finalReply);
 
 if (reservaRegex.test(finalReply) && !hasWA) {
-  finalReply += "\n\n👉 Para gestionar tu reserva, contáctanos por WhatsApp aquí: " +
-    "<a href=\"https://wa.me/34678777204\" target=\"_blank\" rel=\"noopener noreferrer\">" +
-    "https://wa.me/34678777204</a>";
+  finalReply += '\n\n👉 Para gestionar tu reserva, contáctanos por WhatsApp aquí: ' +
+    '<a href="https://wa.me/34678777204" target="_blank" rel="noopener noreferrer">' +
+    'https://wa.me/34678777204</a>';
 }
+
 
     return res.status(200).json({ reply: finalReply });
 
