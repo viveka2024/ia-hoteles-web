@@ -105,9 +105,9 @@ Escribe tu consulta y te responderé en breve.
   </div>
 
   <script>
-    const textarea     = document.getElementById("userInput");
-    const sendBtn       = document.getElementById("sendBtn");
-    const responseArea  = document.getElementById("responseArea");
+    const textarea = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const responseArea = document.getElementById("responseArea");
 
     // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
@@ -118,13 +118,13 @@ Escribe tu consulta y te responderé en breve.
       );
       html = html.replace(
         /(https?:\/\/[^
-        \s.,!?"')]+)([.,!?"')]?)/g,
+        \s.,!\?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
     }
 
-    // Función para enviar el mensaje
+    // Envía el mensaje al asistente y procesa la respuesta
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
@@ -138,8 +138,8 @@ Escribe tu consulta y te responderé en breve.
           body: JSON.stringify({ message: input }),
         });
 
+        const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
-          const isJson    = res.headers.get("content-type")?.includes("application/json");
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
@@ -156,7 +156,9 @@ Escribe tu consulta y te responderé en breve.
       textarea.focus();
     }
 
+    // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
+    // Enter para enviar; Shift+Enter para salto de línea
     textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
