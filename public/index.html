@@ -78,9 +78,9 @@
 
     <h3>Respuesta:</h3>
     <div id="responseArea" class="response">
-Bienvenido a IA Hoteles Web. 
-Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y toda la información que necesites para tu estancia y tipo de viaje. 
-Escribe tu consulta y te responderé en breve.
+      Bienvenido a IA Hoteles Web. 
+      Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y toda la información que necesites para tu estancia y tipo de viaje. 
+      Escribe tu consulta y te responderé en breve.
     </div>
   </div>
 
@@ -89,22 +89,6 @@ Escribe tu consulta y te responderé en breve.
     const sendBtn = document.getElementById("sendBtn");
     const responseArea = document.getElementById("responseArea");
 
-    // Función que convierte Markdown y URLs planas en enlaces clicables
-    function linkify(text) {
-      // 1) Markdown [texto](url) → <a>texto</a>
-      let html = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
-      );
-      // 2) URLs planas → <a>url</a>
-      html = html.replace(
-        /(https?:\/\/[^\s]+)/g,
-        '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
-      );
-      return html;
-    }
-
-    // Función para enviar el mensaje
     async function sendMessage() {
       const input = textarea.value.trim();
       if (!input) return;
@@ -118,29 +102,25 @@ Escribe tu consulta y te responderé en breve.
           body: JSON.stringify({ message: input }),
         });
 
-        const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
-          const errorText = isJson ? (await res.json()).error : await res.text();
-          responseArea.textContent = `❌ Error del servidor: ${errorText}`;
+          const err = await res.json();
+          responseArea.textContent = `❌ ${err.error || res.statusText}`;
           return;
         }
 
-        const data = await res.json();
-        // Convertimos el reply aplicando linkify
-        responseArea.innerHTML = data.reply || "Sin respuesta del asistente.";
-
+        const { reply } = await res.json();
+        // Inyectamos directamente el HTML recibido
+        responseArea.innerHTML = reply;
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
         console.error("Fallo en el cliente:", err);
-        return;
       }
 
-      // Limpiar y enfocar el textarea
       textarea.value = '';
       textarea.focus();
     }
 
-    // Enviar con botón
+    // Evento click en botón
     sendBtn.addEventListener("click", sendMessage);
 
     // Enter para enviar; Shift+Enter para salto de línea
