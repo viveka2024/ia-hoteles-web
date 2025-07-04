@@ -55,14 +55,14 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "El asistente no devolvió una respuesta válida." });
     }
 
-    // 6) Limpiar marcadores tipo 【n:m†source】 antes de enviar al cliente
+    // 6) Eliminar marcadores tipo 【n:m†source】
     let finalReply = reply.replace(/【\d+:\d+†source】/g, "").trim();
 
-    // 7) Añadir enlace de WhatsApp si el usuario habla de reservas y no está ya incluido
+    // 7) Si detectamos intención de reserva y no hay ya un wa.me, lo añadimos en Markdown
     const reservaRegex = /\b(reserva|reservar|disponibilidad|quiero reservar|reservaciones?|pasar con reservas)\b/i;
     const hasWA = /wa\.me\/\d+/.test(finalReply);
     if (reservaRegex.test(finalReply) && !hasWA) {
-      finalReply += '\n\n👉 Para gestionar tu reserva, contáctanos por WhatsApp aquí: [Enlace a reservas](https://wa.me/34678777204)';
+      finalReply += '\n\n👉 Para cualquier gestión relacionada con reservas, por favor contacta directamente con nuestro personal de reservas aquí: [Personal de Reservas](https://wa.me/34678777204)';
     }
 
     return res.status(200).json({ reply: finalReply });
@@ -84,3 +84,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: errorMsg });
   }
 }
+
