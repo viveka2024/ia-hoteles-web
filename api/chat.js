@@ -58,12 +58,15 @@ export default async function handler(req, res) {
     // 6) Eliminar marcadores tipo 【n:m†source】
     let finalReply = reply.replace(/【\d+:\d+†source】/g, "").trim();
 
-    // 7) Si detectamos intención de reserva y no hay ya un wa.me, lo añadimos en Markdown
-    const reservaRegex = /\b(reserva|reservar|disponibilidad|quiero reservar|reservaciones?|pasar con reservas)\b/i;
-    const hasWA = /wa\.me\/\d+/.test(finalReply);
-    if (reservaRegex.test(finalReply) && !hasWA) {
-      finalReply += '\n\n👉 Para cualquier gestión relacionada con reservas, por favor contacta directamente con nuestro personal de reservas aquí: [Personal de Reservas](https://wa.me/34678777204)';
-    }
+    // 7) Añadir enlace de WhatsApp si detectamos intención de reserva
+const reservaRegex = /\b(reserva|reservar|disponibilidad|quiero reservar)\b/i;
+const hasWA = /wa\.me\/\d+/.test(finalReply);
+if (reservaRegex.test(finalReply) && !hasWA) {
+  finalReply +=
+    '\n\n👉 Para gestionar tu reserva, contáctanos por WhatsApp aquí: ' +
+    '<a href="https://wa.me/34678777204" target="_blank" rel="noopener noreferrer">' +
+    'Personal de Reservas</a>';
+}
 
     return res.status(200).json({ reply: finalReply });
 
