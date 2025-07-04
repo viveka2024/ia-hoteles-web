@@ -105,20 +105,19 @@ Escribe tu consulta y te responderé en breve.
   </div>
 
   <script>
-    const textarea = document.getElementById("userInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const responseArea = document.getElementById("responseArea");
+    const textarea     = document.getElementById("userInput");
+    const sendBtn       = document.getElementById("sendBtn");
+    const responseArea  = document.getElementById("responseArea");
 
     // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
       let html = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^
-        \s)]+)\)/g,
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
       html = html.replace(
         /(https?:\/\/[^
-        \s.,!\?"')]+)([.,!?"')]?)/g,
+        \s.,!?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
@@ -138,7 +137,7 @@ Escribe tu consulta y te responderé en breve.
           body: JSON.stringify({ message: input }),
         });
 
-        const isJson = res.headers.get("content-type")?.includes("application/json");
+        const isJson = res.headers.get("content-type").includes("application/json");
         if (!res.ok) {
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
