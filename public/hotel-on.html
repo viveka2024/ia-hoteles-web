@@ -90,35 +90,33 @@
     />
 
     <h2>IA On Hotel Oceanfront Matalascañas</h2>
-    <textarea 
-      id="userInput" 
+    <textarea
+      id="userInput"
       placeholder="¿En qué puedo ayudarte con tu reserva, servicios o información del On Hotel Oceanfront Matalascañas?"
-    ></textarea>
+    ></textarea><br>
     <button id="sendBtn">Enviar</button>
 
     <h3>Respuesta:</h3>
     <div id="responseArea" class="response">
-Bienvenido al asistente de On Hotel Oceanfront Matalascañas. 
-Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y todo lo que necesites para tu estancia. 
+Bienvenido al asistente de On Hotel Oceanfront Matalascañas.
+Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y todo lo que necesites para tu estancia.
 Escribe tu consulta y te responderé en breve.
     </div>
   </div>
 
   <script>
-    const textarea     = document.getElementById("userInput");
-    const sendBtn       = document.getElementById("sendBtn");
-    const responseArea  = document.getElementById("responseArea");
+    const textarea = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const responseArea = document.getElementById("responseArea");
 
     // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
       let html = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^
-        \s)]+)\)/g,
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
       );
       html = html.replace(
-        /(https?:\/\/[^
-        \s.,!?"')]+)([.,!?"')]?)/g,
+        /(https?:\/\/[^\s\.,!?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
@@ -137,12 +135,14 @@ Escribe tu consulta y te responderé en breve.
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: input }),
         });
+
+        const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
-          const isJson = res.headers.get("content-type").includes("application/json");
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
         }
+
         const data = await res.json();
         responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
       } catch (err) {
@@ -156,6 +156,7 @@ Escribe tu consulta y te responderé en breve.
 
     // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
+
     // Enter para enviar; Shift+Enter para salto de línea
     textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -166,3 +167,4 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
+
