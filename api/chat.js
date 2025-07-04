@@ -56,9 +56,16 @@ export default async function handler(req, res) {
     }
 
     // 6) Limpiar marcadores tipo 【n:m†source】 antes de enviar al cliente
-    const cleanReply = reply.replace(/【\d+:\d+†source】/g, '').trim();
+    let finalReply = reply.replace(/【\d+:\d+†source】/g, "").trim();
 
-    return res.status(200).json({ reply: cleanReply });
+    // 7) Añadir enlace de WhatsApp si el usuario habla de reservas y no está ya incluido
+    const reservaRegex = /\b(reserva|reservar|disponibilidad|quiero reservar|pasar con reservas)\b/i;
+    const hasWA = /wa\.me\/\d+/.test(finalReply);
+    if (reservaRegex.test(finalReply) && !hasWA) {
+      finalReply += `\n\n👉 Para gestionar tu reserva, contáctanos por WhatsApp aquí:\nhttps://wa.me/34678777204`;
+    }
+
+    return res.status(200).json({ reply: finalReply });
 
   } catch (error) {
     console.error("❌ Error en el servidor:", error);
@@ -77,4 +84,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: errorMsg });
   }
 }
-
