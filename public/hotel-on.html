@@ -93,7 +93,7 @@
     <textarea 
       id="userInput" 
       placeholder="¿En qué puedo ayudarte con tu reserva, servicios o información del On Hotel Oceanfront Matalascañas?"
-    ></textarea><br>
+    ></textarea>
     <button id="sendBtn">Enviar</button>
 
     <h3>Respuesta:</h3>
@@ -105,9 +105,9 @@ Escribe tu consulta y te responderé en breve.
   </div>
 
   <script>
-    const textarea = document.getElementById("userInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const responseArea = document.getElementById("responseArea");
+    const textarea     = document.getElementById("userInput");
+    const sendBtn       = document.getElementById("sendBtn");
+    const responseArea  = document.getElementById("responseArea");
 
     // Convierte Markdown y URLs planas en enlaces clicables
     function linkify(text) {
@@ -118,7 +118,7 @@ Escribe tu consulta y te responderé en breve.
       );
       html = html.replace(
         /(https?:\/\/[^
-        \s.,!\?"')]+)([.,!?"')]?)/g,
+        \s.,!?"')]+)([.,!?"')]?)/g,
         '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>$2'
       );
       return html;
@@ -137,14 +137,12 @@ Escribe tu consulta y te responderé en breve.
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: input }),
         });
-
-        const isJson = res.headers.get("content-type")?.includes("application/json");
         if (!res.ok) {
+          const isJson = res.headers.get("content-type").includes("application/json");
           const errorText = isJson ? (await res.json()).error : await res.text();
           responseArea.textContent = `❌ Error del servidor: ${errorText}`;
           return;
         }
-
         const data = await res.json();
         responseArea.innerHTML = linkify(data.reply || "Sin respuesta del asistente.");
       } catch (err) {
