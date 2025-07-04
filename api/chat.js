@@ -55,7 +55,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "El asistente no devolvió una respuesta válida." });
     }
 
-    return res.status(200).json({ reply });
+    // 6) Limpiar marcadores tipo 【n:m†source】 antes de enviar al cliente
+    const cleanReply = reply.replace(/【\d+:\d+†source】/g, '').trim();
+
+    return res.status(200).json({ reply: cleanReply });
 
   } catch (error) {
     console.error("❌ Error en el servidor:", error);
