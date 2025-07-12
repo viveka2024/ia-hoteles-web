@@ -7,7 +7,6 @@
   <style>
     body {
       font-family: 'Helvetica Neue', sans-serif;
-      /* Fondo con la captura del Hotel El Coto */
       background-image: url('/logos/hotel-elcotob.png');
       background-position: center center;
       background-repeat: no-repeat;
@@ -19,7 +18,6 @@
     .container {
       max-width: 600px;
       margin: 0 auto;
-      /* Fondo semitransparente sobre la imagen */
       background: rgba(255,255,255,0.85);
       padding: 30px;
       border-radius: 10px;
@@ -46,7 +44,7 @@
     }
     button {
       margin-top: 15px;
-      background-color: #0070f3; /* botón azul */
+      background-color: #0070f3;
       color: white;
       border: none;
       padding: 12px 20px;
@@ -57,7 +55,7 @@
       width: 100%;
     }
     button:hover {
-      background-color: #0056c7; /* hover azul más oscuro */
+      background-color: #0056c7;
     }
     h3 {
       margin-top: 30px;
@@ -72,7 +70,7 @@
       font-family: monospace;
     }
     .response a {
-      color: #0070f3; /* enlaces en azul */
+      color: #0070f3;
       text-decoration: none;
     }
     .response a:hover {
@@ -81,7 +79,11 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div 
+    id="chat" 
+    class="container"
+    data-hotel-id="gran-hotel-del-coto"
+  >
     <!-- Logo de Gran Hotel del Coto -->
     <img
       id="hotelLogo"
@@ -93,21 +95,22 @@
     <textarea 
       id="userInput" 
       placeholder="¿En qué puedo ayudarte con tu reserva, servicios o información del Gran Hotel del Coto?"
-    ></textarea>
+    ></textarea><br>
     <button id="sendBtn">Enviar</button>
 
     <h3>Respuesta:</h3>
     <div id="responseArea" class="response">
-Bienvenido al asistente del Gran Hotel del Coto. 
-Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y todo lo que necesites para tu estancia. 
-Escribe tu consulta y te responderé en breve.
+      Bienvenido al asistente del Gran Hotel del Coto. 
+      Estoy aquí para ayudarte con información, reservas, servicios, recomendaciones de alojamiento y todo lo que necesites para tu estancia. 
+      Escribe tu consulta y te responderé en breve.
     </div>
   </div>
 
   <script>
-    const textarea     = document.getElementById("userInput");
-    const sendBtn       = document.getElementById("sendBtn");
-    const responseArea  = document.getElementById("responseArea");
+    const chatContainer  = document.getElementById("chat");
+    const textarea       = document.getElementById("userInput");
+    const sendBtn        = document.getElementById("sendBtn");
+    const responseArea   = document.getElementById("responseArea");
 
     // Convierte Markdown y URLs en enlaces clicables
     function linkify(text) {
@@ -122,29 +125,68 @@ Escribe tu consulta y te responderé en breve.
       return html;
     }
 
+    // Valores fijos
+    const id_usuario_hotel = chatContainer.dataset.hotelId;
+    const canal            = 'web';
+    const meta             = {
+      navegador: navigator.userAgent,
+      idioma:   navigator.language
+    };
+
+    // UUID de la conversación
+    let idConversacion = null;
+
+    // 1) Al cargar: creamos la conversación en la BBDD
+    async function initConversation() {
+      try {
+        const res = await fetch("/api/conversacion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_usuario_hotel, canal, meta })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        idConversacion = data.id_conversacion;
+      } catch (err) {
+        console.error("Error iniciando conversación:", err);
+      }
+    }
+    initConversation();
+
+    // 2) Enviar mensaje al chat y luego disparar el PATCH sin await
     async function sendMessage() {
-      const input = textarea.value.trim();
-      if (!input) return;
+      const message = textarea.value.trim();
+      if (!message) return;
 
       responseArea.textContent = "Escribiendo...";
 
       try {
-        const res = await fetch("/api/chat", {
+        // 2.1) Respuesta de IA
+        const chatRes = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: input }),
+          body: JSON.stringify({ message })
         });
-        if (!res.ok) {
-          const isJson    = res.headers.get("content-type")?.includes("application/json");
-          const errorText = isJson ? (await res.json()).error : await res.text();
-          responseArea.textContent = `❌ Error del servidor: ${errorText}`;
-          return;
+        if (!chatRes.ok) {
+          const err = await chatRes.json();
+          throw new Error(err.error || chatRes.statusText);
         }
-        const { reply } = await res.json();
-        // Inyecta el HTML ya formateado (con <a>) directamente
-        responseArea.innerHTML = linkify(reply || "Sin respuesta del asistente.");
+        const { reply } = await chatRes.json();
+        responseArea.innerHTML = linkify(reply);
+
+        // 2.2) Fire-and-forget: guarda la pregunta en Supabase
+        if (idConversacion) {
+          fetch("/api/conversacion", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id_conversacion: idConversacion,
+              resumen_interaccion: { pregunta: message }
+            })
+          }).catch(err => console.error("PATCH fallo:", err));
+        }
       } catch (err) {
-        responseArea.textContent = `❌ Error inesperado: ${err.message}`;
+        responseArea.textContent = `❌ ${err.message}`;
         console.error("Fallo en el cliente:", err);
       }
 
@@ -152,10 +194,9 @@ Escribe tu consulta y te responderé en breve.
       textarea.focus();
     }
 
-    // Enviar con botón
+    // Eventos
     sendBtn.addEventListener("click", sendMessage);
-    // Enviar con Enter; Shift+Enter para salto de línea
-    textarea.addEventListener("keydown", (e) => {
+    textarea.addEventListener("keydown", e => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
@@ -164,3 +205,4 @@ Escribe tu consulta y te responderé en breve.
   </script>
 </body>
 </html>
+
