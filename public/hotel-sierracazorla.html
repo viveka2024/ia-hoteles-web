@@ -5,7 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IA Hotel Spa Sierra de Cazorla</title>
   <style>
-    /* ... (mantenemos tu CSS sin cambios) ... */
+    body {
+      font-family: 'Helvetica Neue', sans-serif;
+      background-image: url('/logos/hotel-sierrab.png');
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.85);
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+    #hotelLogo {
+      display: block;
+      margin: 0 auto 20px;
+      max-height: 140px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #111;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-size: 16px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    button {
+      margin-top: 15px;
+      background-color: #6db034;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #579228;
+    }
+    h3 {
+      margin-top: 30px;
+      font-size: 18px;
+    }
+    .response {
+      background-color: #f9f9f9;
+      border: 1px solid #e0e0e0;
+      padding: 15px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    .response a {
+      color: #6db034;
+      text-decoration: none;
+    }
+    .response a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -14,17 +84,20 @@
     class="container" 
     data-hotel-id="sierracazorla"
   >
+    <!-- Logo de Hotel Spa Sierra de Cazorla -->
     <img
       id="hotelLogo"
       src="/logos/hotel-sierra.jpg"
       alt="Logo Hotel Spa Sierra de Cazorla"
     />
+
     <h2>IA Hotel Spa Sierra de Cazorla</h2>
     <textarea
       id="userInput"
       placeholder="¿En qué puedo ayudarte con tu reserva, servicios o información del Hotel Spa Sierra de Cazorla?"
     ></textarea><br>
     <button id="sendBtn">Enviar</button>
+
     <h3>Respuesta:</h3>
     <div id="responseArea" class="response">
       Bienvenido al asistente del Hotel Spa Sierra de Cazorla. 
@@ -34,41 +107,38 @@
   </div>
 
   <script>
-    const chatContainer   = document.getElementById("chat");
-    const textarea        = document.getElementById("userInput");
-    const sendBtn         = document.getElementById("sendBtn");
-    const responseArea    = document.getElementById("responseArea");
+    const chatContainer = document.getElementById("chat");
+    const textarea = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const responseArea = document.getElementById("responseArea");
 
-    // Datos fijos
+    // Prepara datos fijos
     const id_usuario_hotel = chatContainer.dataset.hotelId; // "sierracazorla"
-    const canal            = 'web';
-    let idConversacion     = null; // guarda aquí el UUID del hilo
+    const canal = 'web';
 
+    // Función para enviar el mensaje al servidor y procesar la respuesta
     async function sendMessage() {
       const message = textarea.value.trim();
       if (!message) return;
 
       responseArea.textContent = "Escribiendo...";
 
+      // Construye el objeto meta
       const meta = {
         navegador: navigator.userAgent,
-        idioma:   navigator.language
-      };
-
-      // Construye el payload, incluyendo id_conversacion si ya existe
-      const payload = {
-        message,
-        id_usuario_hotel,
-        canal,
-        meta,
-        ...(idConversacion && { id_conversacion: idConversacion })
+        idioma: navigator.language
       };
 
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            message,
+            id_usuario_hotel,
+            canal,
+            meta
+          })
         });
 
         if (!res.ok) {
@@ -77,10 +147,7 @@
           return;
         }
 
-        const { reply, id_conversacion } = await res.json();
-        // Guarda el UUID para futuras llamadas
-        idConversacion = id_conversacion;
-
+        const { reply } = await res.json();
         responseArea.innerHTML = reply;
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
@@ -91,7 +158,10 @@
       textarea.focus();
     }
 
+    // Enviar con botón
     sendBtn.addEventListener("click", sendMessage);
+
+    // Enter para enviar; Shift+Enter para salto de línea
     textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
