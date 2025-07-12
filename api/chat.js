@@ -73,8 +73,9 @@ export default async function handler(req, res) {
 
     // ─── 3) Actualizamos el registro con el resumen de intenciones ────────────
     // Aquí puedes construir el JSON de resumen que necesites.
-    const resumen_interaccion = {
-      respuesta: finalReply,
+    const resumen_interaccion = {      
+pregunta: message,
+respuesta: finalReply
       // añadir aquí otros campos si quieres, p.ej. tipo_cliente, foco, etc.
     };
 
