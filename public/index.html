@@ -68,7 +68,11 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <div 
+    id="chat"
+    class="container"
+    data-hotel-id="general"
+  >
     <h2>IA Hoteles Web</h2>
     <textarea 
       id="userInput" 
@@ -85,34 +89,73 @@
   </div>
 
   <script>
-    const textarea = document.getElementById("userInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const responseArea = document.getElementById("responseArea");
+    const chatContainer  = document.getElementById("chat");
+    const textarea       = document.getElementById("userInput");
+    const sendBtn        = document.getElementById("sendBtn");
+    const responseArea   = document.getElementById("responseArea");
 
+    // Datos fijos
+    const id_usuario_hotel = chatContainer.dataset.hotelId; // "general"
+    const canal            = 'web';
+    const meta             = {
+      navegador: navigator.userAgent,
+      idioma:   navigator.language
+    };
+
+    // UUID de la conversación
+    let idConversacion = null;
+
+    // 1) Al cargar: creamos la conversación en la BBDD
+    async function initConversation() {
+      try {
+        const res = await fetch("/api/conversacion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id_usuario_hotel, canal, meta })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        idConversacion = data.id_conversacion;
+      } catch (err) {
+        console.error("Error iniciando conversación:", err);
+      }
+    }
+    initConversation();
+
+    // 2) Enviar mensaje al chat y luego disparar el PATCH sin await
     async function sendMessage() {
-      const input = textarea.value.trim();
-      if (!input) return;
+      const message = textarea.value.trim();
+      if (!message) return;
 
       responseArea.textContent = "Escribiendo...";
 
       try {
-        const res = await fetch("/api/chat", {
+        // Llamada a /api/chat para la respuesta IA
+        const chatRes = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: input }),
+          body: JSON.stringify({ message })
         });
-
-        if (!res.ok) {
-          const err = await res.json();
-          responseArea.textContent = `❌ ${err.error || res.statusText}`;
-          return;
+        if (!chatRes.ok) {
+          const err = await chatRes.json();
+          throw new Error(err.error || chatRes.statusText);
         }
-
-        const { reply } = await res.json();
-        // Inyectamos directamente el HTML recibido
+        const { reply } = await chatRes.json();
         responseArea.innerHTML = reply;
+
+        // Fire-and-forget: guarda la pregunta en Supabase
+        if (idConversacion) {
+          fetch("/api/conversacion", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id_conversacion: idConversacion,
+              resumen_interaccion: { pregunta: message }
+            })
+          }).catch(err => console.error("PATCH fallo:", err));
+        }
       } catch (err) {
-        responseArea.textContent = `❌ Error inesperado: ${err.message}`;
+        responseArea.textContent = `❌ ${err.message}`;
         console.error("Fallo en el cliente:", err);
       }
 
@@ -120,11 +163,9 @@
       textarea.focus();
     }
 
-    // Evento click en botón
+    // Eventos
     sendBtn.addEventListener("click", sendMessage);
-
-    // Enter para enviar; Shift+Enter para salto de línea
-    textarea.addEventListener("keydown", function(e) {
+    textarea.addEventListener("keydown", e => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
