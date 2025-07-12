@@ -107,41 +107,38 @@
   </div>
 
   <script>
-    const chatContainer    = document.getElementById("chat");
-    const textarea         = document.getElementById("userInput");
-    const sendBtn          = document.getElementById("sendBtn");
-    const responseArea     = document.getElementById("responseArea");
+    const chatContainer = document.getElementById("chat");
+    const textarea = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const responseArea = document.getElementById("responseArea");
 
-    // Datos fijos y variable de hilo
+    // Prepara datos fijos
     const id_usuario_hotel = chatContainer.dataset.hotelId; // "sierracazorla"
-    const canal            = 'web';
-    let idConversacion     = null; // guardará el UUID del hilo
+    const canal = 'web';
 
+    // Función para enviar el mensaje al servidor y procesar la respuesta
     async function sendMessage() {
       const message = textarea.value.trim();
       if (!message) return;
 
       responseArea.textContent = "Escribiendo...";
 
+      // Construye el objeto meta
       const meta = {
         navegador: navigator.userAgent,
-        idioma:   navigator.language
-      };
-
-      // Construye el payload, solo añade id_conversacion si ya existe
-      const payload = {
-        message,
-        id_usuario_hotel,
-        canal,
-        meta,
-        ...(idConversacion && { id_conversacion: idConversacion })
+        idioma: navigator.language
       };
 
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            message,
+            id_usuario_hotel,
+            canal,
+            meta
+          })
         });
 
         if (!res.ok) {
@@ -150,10 +147,7 @@
           return;
         }
 
-        // Recibimos reply e id_conversacion
-        const { reply, id_conversacion } = await res.json();
-        idConversacion = id_conversacion; // guardamos para próximas peticiones
-
+        const { reply } = await res.json();
         responseArea.innerHTML = reply;
       } catch (err) {
         responseArea.textContent = `❌ Error inesperado: ${err.message}`;
