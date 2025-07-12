@@ -5,8 +5,8 @@ import { Configuration, OpenAIApi } from "openai";
 
 // Inicializa cliente Supabase con rol de servicio
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 // Inicializa cliente OpenAI
@@ -45,10 +45,14 @@ export default async function handler(req, res) {
     fecha: c.fecha_hora,
     canal: c.canal,
     idioma: c.meta?.idioma || "unknown",
-    texto: c.resumen_interaccion?.pregunta || JSON.stringify(c.resumen_interaccion)
+    texto:
+      c.resumen_interaccion?.pregunta ||
+      (typeof c.resumen_interaccion === "string"
+        ? c.resumen_interaccion
+        : JSON.stringify(c.resumen_interaccion))
   }));
 
-    // Construye prompt para análisis
+  // Construye prompt para análisis
   const prompt = `
 Eres un analista de datos para hoteles. A continuación tienes la lista de interacciones con clientes en el periodo seleccionado:
 ${JSON.stringify(interactions, null, 2)}
@@ -90,7 +94,7 @@ Devuélvelo como texto formateado, sin JSON extra.
 `;
 
   // Llama a OpenAI para generar el texto del informe
-  const gptResponse = await openai.createChatCompletion({ = await openai.createChatCompletion({
+  const gptResponse = await openai.createChatCompletion({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: "Eres un asistente experto en análisis de datos de hoteles." },
@@ -102,3 +106,4 @@ Devuélvelo como texto formateado, sin JSON extra.
 
   return res.status(200).json({ informe });
 }
+
