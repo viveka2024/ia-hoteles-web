@@ -7,14 +7,14 @@ const openai = new OpenAI({
 });
 
 export default async function handler(req, res) {
-  console.log("💡 Request a /api/chat");
+  console.log("💡 Request to /api/chat");
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Solo se permiten solicitudes POST" });
   }
 
-  // Esperamos que el cliente nos envíe también estos campos:
-  const { message, id_usuario_hotel, canal, meta } = req.body;
+  // Esperamos recibir también estos campos desde el cliente:
+  const { message, id_usuario_hotel, canal, meta, id_conversacion } = req.body;
 
   if (!message || !id_usuario_hotel || !canal || !meta) {
     return res
@@ -23,18 +23,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ─── 1) Creamos el registro de la conversación en Supabase ─────────────────
-    const { data: convData, error: convError } = await supabase
-      .from("conversaciones_hoteles")
-      .insert([{ id_usuario_hotel, canal, meta }])
-      .select();
-    if (convError) {
-      console.error("Error al crear conversación:", convError);
-      // No abortamos: seguimos para poder devolver al menos la IA
+    // ─── 1) Creamos o reusamos el registro de conversación ────────────────────
+    let convId = id_conversacion;
+    if (!convId) {
+      // Si no viene id_conversacion, hacemos INSERT
+      const { data: convData, error: convError } = await supabase
+        .from("conversaciones_hoteles")
+        .insert([{ id_usuario_hotel, canal, meta }])
+        .select();
+      if (convError) {
+        console.error("Error al crear conversación:", convError);
+        // Seguimos, aunque convData pueda ser undefined
+      }
+      convId = convData?.[0]?.id_conversacion;
     }
-    const id_conversacion = convData?.[0]?.id_conversacion;
 
-    // ─── 2) Lógica de OpenAI Thread como antes ────────────────────────────────
+    // ─── 2) Lógica OpenAI Threads ─────────────────────────────────────────────
     const thread = await openai.beta.threads.create();
     await openai.beta.threads.messages.create(thread.id, {
       role: "user",
@@ -71,27 +75,26 @@ export default async function handler(req, res) {
     }
     const finalReply = reply.replace(/【\d+:\d+†source】/g, "").trim();
 
-    // ─── 3) Actualizamos el registro con el resumen de intenciones ────────────
-    // Aquí puedes construir el JSON de resumen que necesites.
-    const resumen_interaccion = {      
-pregunta: message,
-respuesta: finalReply
-      // añadir aquí otros campos si quieres, p.ej. tipo_cliente, foco, etc.
+    // ─── 3) Construimos el JSON con pregunta y respuesta ────────────────────
+    const resumen_interaccion = {
+      pregunta: message,
+      respuesta: finalReply
     };
 
-    if (id_conversacion) {
+    // ─── 4) Hacemos PATCH para actualizar esa misma conversación ──────────────
+    if (convId) {
       const { error: updError } = await supabase
         .from("conversaciones_hoteles")
         .update({ resumen_interaccion })
-        .eq("id_conversacion", id_conversacion);
+        .eq("id_conversacion", convId);
       if (updError) {
         console.error("Error al actualizar resumen:", updError);
       }
     }
 
-    // ─── 4) Devolvemos la respuesta al cliente ─────────────────────────────────
+    // ─── 5) Respondemos al cliente con el mismo id_conversacion ─────────────
     return res.status(200).json({
-      id_conversacion,
+      id_conversacion: convId,
       reply: finalReply,
     });
   } catch (error) {
@@ -107,4 +110,3 @@ respuesta: finalReply
     return res.status(500).json({ error: errorMsg });
   }
 }
-
