@@ -75,7 +75,6 @@ export default async function handler(req, res) {
     // Aquí puedes construir el JSON de resumen que necesites.
     const resumen_interaccion = {      
 pregunta: message,
-respuesta: finalReply
       // añadir aquí otros campos si quieres, p.ej. tipo_cliente, foco, etc.
     };
 
