@@ -106,88 +106,89 @@
   </div>
 
   <script>
-  const chatContainer  = document.getElementById("chat");
-  const textarea       = document.getElementById("userInput");
-  const sendBtn        = document.getElementById("sendBtn");
-  const responseArea   = document.getElementById("responseArea");
+    const chatContainer  = document.getElementById("chat");
+    const textarea       = document.getElementById("userInput");
+    const sendBtn        = document.getElementById("sendBtn");
+    const responseArea   = document.getElementById("responseArea");
 
-  // Valores fijos
-  const id_usuario_hotel = chatContainer.dataset.hotelId; // "sierracazorla"
-  const canal            = 'web';
-  const meta             = {
-    navegador: navigator.userAgent,
-    idioma:   navigator.language
-  };
+    // Valores fijos
+    const id_usuario_hotel = chatContainer.dataset.hotelId; // "sierracazorla"
+    const canal            = 'web';
+    const meta             = {
+      navegador: navigator.userAgent,
+      idioma:   navigator.language
+    };
 
-  // Aquí guardamos el UUID de la conversación
-  let idConversacion = null;
+    // Aquí guardamos el UUID de la conversación
+    let idConversacion = null;
 
-  // 1) Al cargar: creamos la conversación en la BBDD
-  async function initConversation() {
-    try {
-      const res = await fetch("/api/conversacion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_usuario_hotel, canal, meta })
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
-      idConversacion = data.id_conversacion;
-    } catch (err) {
-      console.error("Error iniciando conversación:", err);
-    }
-  }
-  initConversation();
-
-  // 2) Enviar mensaje al chat y luego guardar la pregunta
-  async function sendMessage() {
-    const message = textarea.value.trim();
-    if (!message) return;
-
-    responseArea.textContent = "Escribiendo...";
-
-    try {
-      // 2.1) Llama a /api/chat para la respuesta IA
-      const chatRes = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-      if (!chatRes.ok) {
-        const err = await chatRes.json();
-        throw new Error(err.error || chatRes.statusText);
-      }
-      const { reply } = await chatRes.json();
-      responseArea.innerHTML = reply;
-
-      // 2.2) Guarda la pregunta en Supabase vía PATCH
-      if (idConversacion) {
-        await fetch("/api/conversacion", {
-          method: "PATCH",
+    // 1) Al cargar: creamos la conversación en la BBDD
+    async function initConversation() {
+      try {
+        const res = await fetch("/api/conversacion", {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_conversacion: idConversacion,
-            resumen_interaccion: { pregunta: message }
-          })
+          body: JSON.stringify({ id_usuario_hotel, canal, meta })
         });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        idConversacion = data.id_conversacion;
+      } catch (err) {
+        console.error("Error iniciando conversación:", err);
       }
-    } catch (err) {
-      responseArea.textContent = `❌ ${err.message}`;
-      console.error("Fallo en el cliente:", err);
+    }
+    initConversation();
+
+    // 2) Enviar mensaje al chat y luego disparar el PATCH sin await
+    async function sendMessage() {
+      const message = textarea.value.trim();
+      if (!message) return;
+
+      responseArea.textContent = "Escribiendo...";
+
+      try {
+        // 2.1) Llama a /api/chat para la respuesta IA
+        const chatRes = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+        if (!chatRes.ok) {
+          const err = await chatRes.json();
+          throw new Error(err.error || chatRes.statusText);
+        }
+        const { reply } = await chatRes.json();
+        responseArea.innerHTML = reply;
+
+        // 2.2) Fire-and-forget: guarda la pregunta en Supabase
+        if (idConversacion) {
+          fetch("/api/conversacion", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id_conversacion: idConversacion,
+              resumen_interaccion: { pregunta: message }
+            })
+          }).catch(err => console.error("PATCH fallo:", err));
+        }
+      } catch (err) {
+        responseArea.textContent = `❌ ${err.message}`;
+        console.error("Fallo en el cliente:", err);
+      }
+
+      textarea.value = '';
+      textarea.focus();
     }
 
-    textarea.value = '';
-    textarea.focus();
-  }
-
-  // Eventos
-  sendBtn.addEventListener("click", sendMessage);
-  textarea.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-</script>
+    // Eventos
+    sendBtn.addEventListener("click", sendMessage);
+    textarea.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
 </body>
 </html>
+
