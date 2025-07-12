@@ -80,7 +80,7 @@
 </head>
 <body>
   <div 
-    id="chat" 
+    id="chat"
     class="container"
     data-hotel-id="gran-hotel-del-coto"
   >
@@ -112,7 +112,6 @@
     const sendBtn        = document.getElementById("sendBtn");
     const responseArea   = document.getElementById("responseArea");
 
-    // Convierte Markdown y URLs en enlaces clicables
     function linkify(text) {
       let html = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[\S]+)\)/g,
@@ -125,18 +124,14 @@
       return html;
     }
 
-    // Valores fijos
     const id_usuario_hotel = chatContainer.dataset.hotelId;
     const canal            = 'web';
     const meta             = {
       navegador: navigator.userAgent,
       idioma:   navigator.language
     };
-
-    // UUID de la conversación
     let idConversacion = null;
 
-    // 1) Al cargar: creamos la conversación en la BBDD
     async function initConversation() {
       try {
         const res = await fetch("/api/conversacion", {
@@ -153,15 +148,12 @@
     }
     initConversation();
 
-    // 2) Enviar mensaje al chat y luego disparar el PATCH sin await
     async function sendMessage() {
       const message = textarea.value.trim();
       if (!message) return;
-
       responseArea.textContent = "Escribiendo...";
 
       try {
-        // 2.1) Respuesta de IA
         const chatRes = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -174,7 +166,6 @@
         const { reply } = await chatRes.json();
         responseArea.innerHTML = linkify(reply);
 
-        // 2.2) Fire-and-forget: guarda la pregunta en Supabase
         if (idConversacion) {
           fetch("/api/conversacion", {
             method: "PATCH",
@@ -194,7 +185,6 @@
       textarea.focus();
     }
 
-    // Eventos
     sendBtn.addEventListener("click", sendMessage);
     textarea.addEventListener("keydown", e => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -205,4 +195,5 @@
   </script>
 </body>
 </html>
+
 
