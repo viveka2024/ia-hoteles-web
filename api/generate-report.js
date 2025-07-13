@@ -115,7 +115,7 @@ Devuélvelo como texto formateado, sin JSON extra.
 
   try {
     const gptResponse = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "Eres un asistente experto en análisis de datos de hoteles." },
         { role: "user", content: prompt }
