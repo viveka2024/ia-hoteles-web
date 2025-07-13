@@ -3,32 +3,32 @@
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 
-// Inicializa cliente Supabase con las claves definidas en Vercel
+// Inicializa cliente Supabase
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// Inicializa cliente OpenAI (v4.x)
+// Inicializa cliente OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
 export default async function handler(req, res) {
-  // Depuración de variables de entorno
   console.log("ENV:", {
     SUPABASE_URL: !!process.env.SUPABASE_URL,
     SUPABASE_KEY: !!process.env.SUPABASE_SERVICE_KEY,
     OPENAI_KEY: !!process.env.OPENAI_API_KEY
   });
 
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Método no permitido" });
-  }
+  if (req.method !== "GET")
+    return res
+      .status(405)
+      .setHeader("Allow", ["GET"])
+      .json({ error: "Método no permitido" });
 
   try {
-    // Determina el rango de fechas
+    // 1) Parámetro y rango
     const { period } = req.query;
     let fromDate = null;
     if (period === "7" || period === "30") {
@@ -36,39 +36,81 @@ export default async function handler(req, res) {
       fromDate.setDate(fromDate.getDate() - parseInt(period, 10));
     }
 
-    // Consulta las interacciones
+    // 2) Lee interacciones
     let query = supabase
       .from("conversaciones_hoteles")
       .select("fecha_hora, canal, resumen_interaccion, meta")
       .order("fecha_hora", { ascending: false });
-    if (fromDate) {
-      query = query.gte("fecha_hora", fromDate.toISOString());
-    }
+    if (fromDate) query = query.gte("fecha_hora", fromDate.toISOString());
     const { data: rows, error } = await query;
     if (error) throw error;
 
-    const total = rows.length;
+    // 3) Prepara array de textos
+    const interactions = rows.map((r, i) => ({
+      index: i,
+      fecha: r.fecha_hora,
+      canal: r.canal,
+      idioma: r.meta?.idioma || "unknown",
+      texto:
+        typeof r.resumen_interaccion === "object"
+          ? r.resumen_interaccion.pregunta || JSON.stringify(r.resumen_interaccion)
+          : r.resumen_interaccion || ""
+    }));
 
-    // Agrupa datos localmente
+    // 4) Clasifica con un solo llamado a OpenAI
+    const classifyPrompt = `
+Eres un clasificador de interacciones de clientes de hotel.  
+Recibe un array de objetos { index, texto } y devuelve un array JSON con objetos { index, tipo_cliente, tematica }.  
+Los tipos posibles son: familiar, romántico, individual, trabajo, grupo de amigos, eventos, etc.  
+Las temáticas posibles: excursiones, spa, habitaciones, precio, wifi, check-in, restaurante, desayuno, parking, etc.  
+Devuélvelo **solo** como JSON, ejemplo:
+[
+  { "index": 0, "tipo_cliente": "familiar", "tematica": "excursiones" },
+  ...
+]
+---
+Interacciones originales:
+${JSON.stringify(
+  interactions.map(({ index, texto }) => ({ index, texto })),
+  null,
+  2
+)}
+`;
+
+    const classifyResp = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "Eres un asistente experto en clasificación de interacciones." },
+        { role: "user", content: classifyPrompt }
+      ]
+    });
+    const classification = JSON.parse(
+      classifyResp.choices[0].message.content
+    );
+
+    // 5) Fusiona la clasificación en el array
+    classification.forEach((c) => {
+      const it = interactions.find((x) => x.index === c.index);
+      if (it) {
+        it.tipo_cliente = c.tipo_cliente;
+        it.tematica = c.tematica;
+      }
+    });
+
+    // 6) Calcula métricas
+    const total = interactions.length;
     const userWindows = new Set();
     const tiposCount = {};
     const tematicasCount = {};
 
-    rows.forEach(r => {
-      // Ventana de 10 min para usuarios únicos
-      const d = new Date(r.fecha_hora);
+    interactions.forEach((it) => {
+      const d = new Date(it.fecha);
       d.setMinutes(Math.floor(d.getMinutes() / 10) * 10);
       userWindows.add(d.toISOString());
 
-      // Extrae tipo y temática de resumen_interaccion
-      let tipo = "Desconocido", tema = "General";
-      try {
-        const parsed = typeof r.resumen_interaccion === "object"
-          ? r.resumen_interaccion
-          : JSON.parse(r.resumen_interaccion);
-        tipo = parsed.tipo_cliente || tipo;
-        tema = parsed.tematica || tema;
-      } catch {}
+      const tipo = it.tipo_cliente || "Desconocido";
+      const tema = it.tematica || "General";
+
       tiposCount[tipo] = (tiposCount[tipo] || 0) + 1;
       tematicasCount[tema] = (tematicasCount[tema] || 0) + 1;
     });
@@ -85,20 +127,20 @@ export default async function handler(req, res) {
       porcentaje: parseFloat(((count / total) * 100).toFixed(1))
     }));
 
-    // Prepara prompt
+    // 7) Construye prompt final y genera informe
     const resumen = { usuariosUnicos, tiposCliente, tematicas };
-    const prompt = `
-Eres un analista de datos de hoteles. Basándote en este resumen de métricas:
+    const finalPrompt = `
+Eres un analista de datos de hoteles.  
+Basándote en este resumen de métricas:
 ${JSON.stringify(resumen, null, 2)}
 
-Genera un informe con:
-1. Resumen de Tendencias (texto formateado como en el ejemplo).
-2. Recomendaciones y Campañas Potenciales basadas en estas tendencias.
+1) Redacta un **Resumen de Tendencias** formateado como en el ejemplo.  
+2) A continuación, **Recomendaciones y Campañas Potenciales** basadas en esas tendencias.
 
-Formato de ejemplo:
-✅ Resumen de Tendencias Manager Insights (Hotel X)
+Ejemplo de formato:
+✅ Resumen de Tendencias Manager Insights (Hotel Sierra de Cazorla)
 Número de usuarios únicos:
-→ ${usuariosUnicos} usuarios
+→ 38 usuarios
 
 Tipos de perfiles detectados:
 • Grupo de amigos: 14 interacciones (23.3%)
@@ -111,29 +153,23 @@ Temáticas y focos de interés más consultados:
 🎯 Recomendaciones y Campañas Potenciales
 1. Paquetes para grupos/eventos: …
 2. Promociones de Ofertas Especiales: …
-3. Comunicación clara de check-in y late check-out: …
-4. Upselling en spa, wifi premium y excursiones: …
-
-Devuélvelo como texto formateado, sin JSON extra.
 `;
 
-    // Llamada a OpenAI
-    const response = await openai.chat.completions.create({
+    const finalResp = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "Eres un asistente experto en análisis de datos de hoteles." },
-        { role: "user", content: prompt }
+        { role: "user", content: finalPrompt }
       ]
     });
 
-    const informe = response.choices[0].message.content;
-    return res.status(200).json({ informe });
+    const informe = finalResp.choices[0].message.content;
 
+    // 8) Devuelve el informe
+    return res.status(200).json({ informe, resumen });
   } catch (err) {
     console.error("generate-report error:", err);
-    return res.status(500).json({
-      error: err.message,
-      stack: err.stack
-    });
+    return res.status(500).json({ error: err.message, stack: err.stack });
   }
 }
+
