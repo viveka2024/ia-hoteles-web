@@ -1,35 +1,7 @@
 // Archivo: /api/generate-report.js
 
-import { createClient } from "@supabase/supabase-js";
-import { Configuration, OpenAIApi } from "openai";
-
-// Inicializa cliente Supabase con las claves de Vercel
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
-
-// Inicializa cliente OpenAI
-const openai = new OpenAIApi(
-  new Configuration({ apiKey: process.env.OPENAI_API_KEY })
-);
-
-export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Método no permitido" });
-  }
-
-  const { period } = req.query;
-  let fromDate = null;
-  if (period === "7" || period === "30") {
-    fromDate = new Date();
-    fromDate.setDate(fromDate.getDate() - parseInt(period, 10));
-  }
-
-  // Consulta interacciones relevantes
-  let query = supabase
-    .from("conversations")
+import { createClient } from "@supabase
+    .from("conversaciones_hoteles") // tabla real en Supabase
     .select("fecha_hora, canal, resumen_interaccion, meta")
     .order("fecha_hora", { ascending: false });
   if (fromDate) {
