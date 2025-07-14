@@ -38,7 +38,7 @@
       display: flex;
       align-items: center;
       gap: 1em;
-      margin-bottom: 1.5em;
+      margin-bottom: 0.5em;
     }
     header img {
       height: 80px;
@@ -48,6 +48,28 @@
       color: var(--text-accent);
       font-size: 2em;
       font-weight: bold;
+    }
+
+    /* CONTROLES (ahora justo debajo de header) */
+    .controls {
+      margin: 1em 0;
+      text-align: left;
+    }
+    .controls button {
+      background: var(--btn-bg);
+      border: 2px solid var(--btn-border);
+      border-radius: 4px;
+      color: var(--btn-text);
+      cursor: pointer;
+      font-size: 1em;
+      margin-right: 0.5em;
+      padding: 0.6em 1.2em;
+      transition: background 0.2s, color 0.2s;
+    }
+    .controls button:hover {
+      background: var(--btn-hover-bg);
+      color: var(--btn-hover-text);
+      border-color: var(--btn-hover-bg);
     }
 
     /* DASHBOARD FLEX */
@@ -66,27 +88,6 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       padding: 1em;
       height: fit-content;
-    }
-
-    /* CONTROLES */
-    .controls {
-      margin-bottom: 1em;
-    }
-    .controls button {
-      background: var(--btn-bg);
-      border: 2px solid var(--btn-border);
-      border-radius: 4px;
-      color: var(--btn-text);
-      cursor: pointer;
-      font-size: 1em;
-      margin-right: 0.5em;
-      padding: 0.6em 1.2em;
-      transition: background 0.2s, color 0.2s;
-    }
-    .controls button:hover {
-      background: var(--btn-hover-bg);
-      color: var(--btn-hover-text);
-      border-color: var(--btn-hover-bg);
     }
 
     /* MENSAJES */
@@ -131,7 +132,7 @@
       margin-bottom: 0.5em;
       font-size: 1em;
     }
-    #save-offer {
+    #save-offer, #deactivate-offer {
       background: var(--btn-bg);
       border: 2px solid var(--btn-border);
       border-radius: 4px;
@@ -161,15 +162,12 @@
     #current-offer-panel p {
       margin: 0.5em 0;
     }
+    /* Botón rojo para desactivar */
     #deactivate-offer {
-      background: var(--btn-bg);
-      border: 2px solid crimson;
-      border-radius: 4px;
+      border-color: crimson;
       color: crimson;
-      cursor: pointer;
       font-size: 0.9em;
       padding: 0.4em 0.8em;
-      transition: background 0.2s, color 0.2s;
     }
     #deactivate-offer:hover {
       background: crimson;
@@ -182,20 +180,20 @@
     <header>
       <img src="/logos/ia-manager-insights-logo.png" alt="Logo IA Manager Insights" />
       <h1>IA Manager Insights</h1>
+    </header>
+
+    <!-- Controles movidos aquí, justo debajo del título -->
+    <div class="controls">
+      <button id="b7">Últimos 7 días</button>
+      <button id="b30">Últimos 30 días</button>
+      <button id="ball">Todo el período</button>
     </div>
 
     <div class="dashboard">
       <!-- PANEL DE INFORME -->
       <div class="report-panel">
-        <div class="controls">
-          <button id="b7">Últimos 7 días</button>
-          <button id="b30">Últimos 30 días</button>
-          <button id="ball">Todo el período</button>
-        </div>
-
         <p id="loading" style="display:none;">Cargando informe…</p>
         <p id="error" style="display:none;"></p>
-
         <div id="output"></div>        
       </div>
 
@@ -235,8 +233,7 @@
       try {
         const res = await fetch(`/api/generate-report?period=${period}`);
         if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || res.statusText);
+          throw new Error(await res.text() || res.statusText);
         }
         const { informe } = await res.json();
         const highlighted = informe
@@ -256,7 +253,7 @@
     document.getElementById('b30').addEventListener('click', () => fetchInforme('30'));
     document.getElementById('ball').addEventListener('click', () => fetchInforme('all'));
 
-    // Manejo de guardar oferta
+    // Guardar nueva oferta
     document.getElementById('save-offer').addEventListener('click', async () => {
       const text = offerTextEl.value.trim();
       if (!text) return alert('Escribe primero una promoción');
@@ -267,10 +264,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ hotel_id: HOTEL_ID, text })
         });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || res.statusText);
-        }
+        if (!res.ok) throw new Error((await res.json()).error || res.statusText);
         offerMsgEl.style.color = 'green';
         offerMsgEl.textContent = 'Oferta guardada ✔️';
         offerTextEl.value = '';
@@ -281,7 +275,7 @@
       }
     });
 
-    // Cargar oferta actual
+    // Cargar oferta activa
     async function loadCurrentOffer() {
       try {
         const res = await fetch(`/api/offers?hotel_id=${HOTEL_ID}`);
@@ -301,22 +295,22 @@
 
     // Desactivar oferta
     btnDeactivate.addEventListener('click', async () => {
-      const id = btnDeactivate.dataset.offerId;
       btnDeactivate.disabled = true;
       await fetch('/api/offers', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hotel_id: HOTEL_ID, id })
+        body: JSON.stringify({ hotel_id: HOTEL_ID, id: btnDeactivate.dataset.offerId })
       });
       btnDeactivate.disabled = false;
       await loadCurrentOffer();
     });
 
-    // Inicializar
+    // Al cargar la página
     document.addEventListener('DOMContentLoaded', loadCurrentOffer);
   </script>
 </body>
 </html>
+
 
 
 
