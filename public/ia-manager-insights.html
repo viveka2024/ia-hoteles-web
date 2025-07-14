@@ -150,6 +150,31 @@
       margin-top: 0.5em;
       font-size: 0.9em;
     }
+
+    /* PANEL OFERTA ACTUAL */
+    #current-offer-panel {
+      margin-top: 1em;
+      border-top: 1px solid #ddd;
+      padding-top: 1em;
+      display: none;
+    }
+    #current-offer-panel p {
+      margin: 0.5em 0;
+    }
+    #deactivate-offer {
+      background: var(--btn-bg);
+      border: 2px solid crimson;
+      border-radius: 4px;
+      color: crimson;
+      cursor: pointer;
+      font-size: 0.9em;
+      padding: 0.4em 0.8em;
+      transition: background 0.2s, color 0.2s;
+    }
+    #deactivate-offer:hover {
+      background: crimson;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -157,7 +182,7 @@
     <header>
       <img src="/logos/ia-manager-insights-logo.png" alt="Logo IA Manager Insights" />
       <h1>IA Manager Insights</h1>
-    </header>
+    </div>
 
     <div class="dashboard">
       <!-- PANEL DE INFORME -->
@@ -171,7 +196,7 @@
         <p id="loading" style="display:none;">Cargando informe…</p>
         <p id="error" style="display:none;"></p>
 
-        <div id="output"></div>
+        <div id="output"></div>        
       </div>
 
       <!-- PANEL DE OFERTAS -->
@@ -180,6 +205,13 @@
         <textarea id="offer-text" rows="4" placeholder="Describe la promoción del hotel..."></textarea>
         <button id="save-offer">Guardar oferta</button>
         <p id="offer-msg"></p>
+
+        <!-- PANEL DE OFERTA ACTUAL -->
+        <div id="current-offer-panel">
+          <strong>Oferta activa:</strong>
+          <p id="current-offer-text"></p>
+          <button id="deactivate-offer">Desactivar oferta</button>
+        </div>
       </div>
     </div>
   </div>
@@ -190,6 +222,11 @@
     const outputEl  = document.getElementById('output');
     const offerTextEl = document.getElementById('offer-text');
     const offerMsgEl  = document.getElementById('offer-msg');
+
+    const panel = document.getElementById('current-offer-panel');
+    const currentText = document.getElementById('current-offer-text');
+    const btnDeactivate = document.getElementById('deactivate-offer');
+    const HOTEL_ID = 'sierracazorla';
 
     async function fetchInforme(period) {
       loadingEl.style.display = 'block';
@@ -228,7 +265,7 @@
         const res = await fetch('/api/offers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hotel_id: 'sierracazorla', text })
+          body: JSON.stringify({ hotel_id: HOTEL_ID, text })
         });
         if (!res.ok) {
           const err = await res.json();
@@ -237,13 +274,50 @@
         offerMsgEl.style.color = 'green';
         offerMsgEl.textContent = 'Oferta guardada ✔️';
         offerTextEl.value = '';
+        await loadCurrentOffer();
       } catch (e) {
         offerMsgEl.style.color = 'crimson';
         offerMsgEl.textContent = 'Error: ' + e.message;
       }
     });
+
+    // Cargar oferta actual
+    async function loadCurrentOffer() {
+      try {
+        const res = await fetch(`/api/offers?hotel_id=${HOTEL_ID}`);
+        if (!res.ok) throw new Error(res.statusText);
+        const { offer } = await res.json();
+        if (offer) {
+          panel.style.display = 'block';
+          currentText.textContent = offer.text;
+          btnDeactivate.dataset.offerId = offer.id;
+        } else {
+          panel.style.display = 'none';
+        }
+      } catch (e) {
+        console.error('Error loading current offer:', e);
+      }
+    }
+
+    // Desactivar oferta
+    btnDeactivate.addEventListener('click', async () => {
+      const id = btnDeactivate.dataset.offerId;
+      btnDeactivate.disabled = true;
+      await fetch('/api/offers', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hotel_id: HOTEL_ID, id })
+      });
+      btnDeactivate.disabled = false;
+      await loadCurrentOffer();
+    });
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', loadCurrentOffer);
   </script>
 </body>
 </html>
+
+
 
 
