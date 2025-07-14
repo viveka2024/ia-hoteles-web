@@ -24,20 +24,25 @@ export default async function handler(req, res) {
     // ─── Recuperar texto de la última oferta activa ─────────────────────────
     const ofertaTexto = await getLatestOfferText();
 
-    // ─── Lógica con OpenAI Threads, inyectando la oferta como mensaje de usuario ─
-    const thread = await openai.beta.threads.create();
+   // ─── Lógica con OpenAI Threads, inyectando la oferta como mensaje de ASISTENTE ─
+const thread = await openai.beta.threads.create();
 
-    // 1) Mensaje de usuario con la oferta
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "user",
-      content: `PROMOCIONES ACTUALES:\n${ofertaTexto}`
-    });
+// 1) Mensaje de ASISTENTE con la oferta y la instrucción de integrarla
+await openai.beta.threads.messages.create(thread.id, {
+  role: "assistant",
+  content: `
+📢 *PROMOCIÓN ACTUAL* 📢
+${ofertaTexto}
 
-    // 2) Mensaje real del cliente
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "user",
-      content: message,
-    });
+→ A la hora de responder al usuario, integra esta oferta donde sea relevante.
+  `.trim()
+});
+
+// 2) Mensaje real del cliente
+await openai.beta.threads.messages.create(thread.id, {
+  role: "user",
+  content: message,
+});
 
     // ─── Ejecutar el run del asistente ───────────────────────────────────────
     const run = await openai.beta.threads.runs.create(thread.id, {
