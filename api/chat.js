@@ -1,7 +1,7 @@
 // api/chat.js
 
-import { supabase } from './supabaseClient.js'
 import OpenAI from "openai";
+import { getLatestOfferText } from "./offersHelper.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -21,22 +21,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ─── Recuperar la última oferta activa ──────────────────────────────────
-    const now = new Date().toISOString();
-    const { data: offers = [], error: offersError } = await supabase
-      .from("hotel_offers")
-      .select("text")
-      .eq("active", true)
-      .or(`expires_at.is.null,expires_at.gt.${now}`)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    if (offersError) console.warn("Error cargando oferta:", offersError);
+    // ─── Recuperar texto de la última oferta activa ─────────────────────────
+    const ofertaTexto = await getLatestOfferText();
 
-    const ofertaTexto = offers.length
-      ? `– ${offers[0].text}`
-      : "– No hay ofertas activas en este momento.";
-
-    // ─── Lógica con OpenAI Threads, inyectando la oferta como mensaje de usuario ───
+    // ─── Lógica con OpenAI Threads, inyectando la oferta como mensaje de usuario ─
     const thread = await openai.beta.threads.create();
 
     // 1) Mensaje de usuario con la oferta
@@ -93,4 +81,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: errorMsg });
   }
 }
+
 
