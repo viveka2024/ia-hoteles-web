@@ -1,4 +1,6 @@
 // api/chat.js
+
+import { supabase } from './supabaseClient.js'
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -12,19 +14,45 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Solo se permiten solicitudes POST" });
   }
 
-  // Solo validamos el mensaje aquí
+  // Validar mensaje
   const { message } = req.body;
   if (!message) {
     return res.status(400).json({ error: "El campo 'message' es requerido" });
   }
 
   try {
-    // ─── Lógica con OpenAI Threads (sin cambios) ───────────────────────────
+    // ─── Recuperar la última oferta activa ──────────────────────────────────
+    const now = new Date().toISOString();
+    const { data: offers = [], error: offersError } = await supabase
+      .from("hotel_offers")
+      .select("text")
+      .eq("active", true)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (offersError) console.warn("Error cargando oferta:", offersError);
+
+    const ofertaTexto = offers.length
+      ? `– ${offers[0].text}`
+      : "– No hay ofertas activas en este momento.";
+
+    // ─── Lógica con OpenAI Threads, inyectando la oferta en el systemPrompt ───
     const thread = await openai.beta.threads.create();
+    // Inyecto la oferta en el primer mensaje del sistema
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "system",
+      content: `
+Eres el asistente de este hotel. Ten en cuenta esta promoción actual:
+${ofertaTexto}
+
+Ahora responde al usuario de la forma más natural y clara posible:
+      `.trim()
+    });
     await openai.beta.threads.messages.create(thread.id, {
       role: "user",
       content: message,
     });
+
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: process.env.ASSISTANT_ID,
     });
@@ -65,3 +93,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: errorMsg });
   }
 }
+
