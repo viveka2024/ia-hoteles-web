@@ -36,23 +36,22 @@ export default async function handler(req, res) {
       ? `– ${offers[0].text}`
       : "– No hay ofertas activas en este momento.";
 
-    // ─── Lógica con OpenAI Threads, inyectando la oferta en el systemPrompt ───
+    // ─── Lógica con OpenAI Threads, inyectando la oferta como mensaje de usuario ───
     const thread = await openai.beta.threads.create();
-    // Inyecto la oferta en el primer mensaje del sistema
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "system",
-      content: `
-Eres el asistente de este hotel. Ten en cuenta esta promoción actual:
-${ofertaTexto}
 
-Ahora responde al usuario de la forma más natural y clara posible:
-      `.trim()
+    // 1) Mensaje de usuario con la oferta
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: `PROMOCIONES ACTUALES:\n${ofertaTexto}`
     });
+
+    // 2) Mensaje real del cliente
     await openai.beta.threads.messages.create(thread.id, {
       role: "user",
       content: message,
     });
 
+    // ─── Ejecutar el run del asistente ───────────────────────────────────────
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: process.env.ASSISTANT_ID,
     });
@@ -69,6 +68,7 @@ Ahora responde al usuario de la forma más natural y clara posible:
       return res.status(500).json({ error: `Ejecución con estado: ${status}` });
     }
 
+    // ─── Recoger la respuesta del asistente ──────────────────────────────────
     const messages = await openai.beta.threads.messages.list(thread.id);
     const assistantMsg = messages.data.find((m) => m.role === "assistant");
     const reply = assistantMsg?.content?.[0]?.text?.value;
