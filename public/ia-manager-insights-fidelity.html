@@ -142,6 +142,17 @@
       background: crimson;
       color: #fff;
     }
+
+    /* --- NUEVO: estilos para las “tags” de categorías --- */
+    .category-tag {
+      display: inline-block;
+      background: rgba(26, 188, 156, 0.15);
+      color: var(--text-accent);
+      border-radius: 12px;
+      padding: 0.2em 0.6em;
+      font-size: 0.9em;
+      margin: 0.2em 0.2em 0 0;
+    }
   </style>
 </head>
 <body>
@@ -205,6 +216,8 @@
           <p id="current-offer-text-fidelity"></p>
           <button class="btn" id="deactivate-offer-fidelity">Desactivar oferta Fidelity</button>
         </div>
+        <!-- --- NUEVO: contenedor para las “tags” de categorías --- -->
+        <div id="category-tags-fidelity"></div>
       </div>
     </div>
   </div>
@@ -269,7 +282,6 @@
         document.getElementById('offer-msg').textContent = 'Error: ' + e.message;
       }
     };
-
     document.getElementById('deactivate-offer').addEventListener('click', async () => {
       const btn = document.getElementById('deactivate-offer');
       btn.disabled = true;
@@ -280,9 +292,7 @@
           body: JSON.stringify({ hotel_id: HOTEL_ID, id: btn.dataset.offerId })
         });
         if (!res.ok) {
-          let err;
-          try { err = (await res.json()).error; }
-          catch { err = await res.text(); }
+          let err; try { err = (await res.json()).error; } catch { err = await res.text(); }
           throw new Error(err || res.statusText);
         }
         await loadCurrentOffer();
@@ -302,11 +312,27 @@
       try {
         const res = await fetch(`/api/generate-report-fidelity?period=${period}`);
         if (!res.ok) throw new Error(await res.text());
-        const { informe } = await res.json();
+        const { informe, resumen } = await res.json();
+
+        // Pinta informe
         document.getElementById('output-fidelity').innerHTML = informe
           .replace(/→ (\d+) usuarios/, '→ <em>$1 usuarios</em>')
           .replace(/• (.+?): (\d+) interacciones \(([\d.]+)%\)/g,
                    '• <em>$1</em>: <em>$2</em> interacciones (<em>$3%</em>)');
+
+        // --- NUEVO: renderiza etiquetas de categorías >12% ---
+        const tagContainer = document.getElementById('category-tags-fidelity');
+        tagContainer.innerHTML = '';
+        (resumen.tematicas || [])
+          .filter(t => t.porcentaje > 12)
+          .sort((a,b) => b.porcentaje - a.porcentaje)
+          .forEach(t => {
+            const span = document.createElement('span');
+            span.className = 'category-tag';
+            span.textContent = `${t.tema} (${t.porcentaje}%)`;
+            tagContainer.appendChild(span);
+          });
+
       } catch (e) {
         document.getElementById('error-fidelity').textContent = 'Error: ' + e.message;
         document.getElementById('error-fidelity').style.display = 'block';
@@ -335,7 +361,6 @@
         console.error(e);
       }
     }
-
     document.getElementById('save-offer-fidelity').addEventListener('click', async () => {
       const text = document.getElementById('offer-text-fidelity').value.trim();
       if (!text) return alert('Escribe primero la oferta Fidelity');
@@ -361,7 +386,6 @@
         document.getElementById('offer-msg-fidelity').textContent = 'Error: ' + e.message;
       }
     });
-
     document.getElementById('deactivate-offer-fidelity').addEventListener('click', async () => {
       const btn = document.getElementById('deactivate-offer-fidelity');
       btn.disabled = true;
@@ -372,9 +396,7 @@
           body: JSON.stringify({ hotel_id: HOTEL_ID, id: btn.dataset.offerId })
         });
         if (!res.ok) {
-          let err;
-          try { err = (await res.json()).error; }
-          catch { err = await res.text(); }
+          let err; try { err = (await res.json()).error; } catch { err = await res.text(); }
           throw new Error(err || res.statusText);
         }
         await loadCurrentOfferFidelity();
@@ -394,5 +416,6 @@
   </script>
 </body>
 </html>
+
 
 
