@@ -69,7 +69,10 @@ export default async function handler(req, res) {
       });
       const vector = embResp.data[0].embedding;
 
-      // 2) Insertar en Supabase (añadiendo title para no violar NOT NULL)
+      // 2) Calcular fecha de inicio
+      const start_date = new Date().toISOString();
+
+      // 3) Insertar en Supabase (añadiendo title y start_date para no violar NOT NULL)
       const { data, error } = await supabase
         .from('fidelity_offers')
         .insert([{
@@ -77,6 +80,7 @@ export default async function handler(req, res) {
           title: text,
           text,
           embedding: vector,
+          start_date,
           expires_at: expires_at || null,
         }])
         .select();
@@ -97,5 +101,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
+
 
 
