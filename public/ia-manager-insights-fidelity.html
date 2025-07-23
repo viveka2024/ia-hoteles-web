@@ -319,7 +319,7 @@ async function loadCurrentOfferFidelity() {
 }
 
 // Guardar nueva oferta Fidelity
-// Guardar nueva oferta Fidelity (robusto contra JSON o texto)
+// Guardar nueva oferta Fidelity (compatible con mobile)
 document.getElementById('save-offer-fidelity').addEventListener('click', async () => {
   const text = document.getElementById('offer-text-fidelity').value.trim();
   if (!text) return alert('Escribe primero la oferta Fidelity');
@@ -329,22 +329,28 @@ document.getElementById('save-offer-fidelity').addEventListener('click', async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ hotel_id: HOTEL_ID, text })
     });
+
     if (!res.ok) {
-      // Intentamos parsear JSON, si falla, caemos al texto
-      let errMsg;
+      // clonar respuesta para leer dos veces
+      const clone = res.clone();
+      // 1) Intentamos JSON
+      let errPayload;
       try {
-        const payload = await res.json();
-        errMsg = payload.error || JSON.stringify(payload);
+        errPayload = await res.json();
       } catch {
-        errMsg = await res.text();
+        // 2) Si JSON falla, leemos como texto
+        const txt = await clone.text();
+        errPayload = { error: txt };
       }
-      throw new Error(errMsg);
+      throw new Error(errPayload.error || 'Error desconocido');
     }
-    // Si todo OK:
+
+    // éxito
     document.getElementById('offer-msg-fidelity').style.color = 'green';
     document.getElementById('offer-msg-fidelity').textContent = 'Oferta Fidelity guardada ✔️';
     document.getElementById('offer-text-fidelity').value = '';
     await loadCurrentOfferFidelity();
+
   } catch (e) {
     document.getElementById('offer-msg-fidelity').style.color = 'crimson';
     document.getElementById('offer-msg-fidelity').textContent = 'Error: ' + e.message;
