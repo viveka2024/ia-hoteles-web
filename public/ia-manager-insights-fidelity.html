@@ -319,6 +319,7 @@ async function loadCurrentOfferFidelity() {
 }
 
 // Guardar nueva oferta Fidelity
+// Guardar nueva oferta Fidelity (robusto contra JSON o texto)
 document.getElementById('save-offer-fidelity').addEventListener('click', async () => {
   const text = document.getElementById('offer-text-fidelity').value.trim();
   if (!text) return alert('Escribe primero la oferta Fidelity');
@@ -328,7 +329,18 @@ document.getElementById('save-offer-fidelity').addEventListener('click', async (
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ hotel_id: HOTEL_ID, text })
     });
-    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    if (!res.ok) {
+      // Intentamos parsear JSON, si falla, caemos al texto
+      let errMsg;
+      try {
+        const payload = await res.json();
+        errMsg = payload.error || JSON.stringify(payload);
+      } catch {
+        errMsg = await res.text();
+      }
+      throw new Error(errMsg);
+    }
+    // Si todo OK:
     document.getElementById('offer-msg-fidelity').style.color = 'green';
     document.getElementById('offer-msg-fidelity').textContent = 'Oferta Fidelity guardada ✔️';
     document.getElementById('offer-text-fidelity').value = '';
