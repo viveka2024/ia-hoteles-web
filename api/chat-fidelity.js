@@ -1,8 +1,8 @@
-// api/chat-fidelity.js
+// /api/chat-fidelity.js
 
 import OpenAI from "openai";
 import { supabase } from "./supabaseClient.js";
-import { getFidelityOffersText } from "./offersFidelityHelper.js";
+import { getLatestFidelityOfferText } from "./offersFidelityHelper.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
   try {
     // 🧠 Recuperar texto de ofertas específicas para clientes Fidelity
-    const ofertasTexto = await getFidelityOffersText();
+    const ofertasTexto = await getLatestFidelityOfferText();
 
     // 🔁 Crear nuevo thread
     const thread = await openai.beta.threads.create();
@@ -46,7 +46,7 @@ ${ofertasTexto}
 
     // ▶️ Ejecutar el asistente GENERAL (el mismo de producción)
     const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: process.env.ASSISTANT_ID, // mismo que chat.js
+      assistant_id: process.env.ASSISTANT_ID, // el mismo que chat.js
     });
 
     let status = "queued";
