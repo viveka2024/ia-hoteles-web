@@ -298,50 +298,62 @@
     document.getElementById('bfall').onclick= () => fetchInformeFidelity('all');
 
     // Ofertas Fidelity
-    async function loadCurrentOfferFidelity() {
-      try {
-        const res = await fetch(`/api/offersFidelity?hotel_id=${HOTEL_ID}`);
-        if (!res.ok) throw new Error(res.statusText);
-        const { offer } = await res.json();
-        if (offer) {
-          document.getElementById('current-offer-panel-fidelity').style.display = 'block';
-          document.getElementById('current-offer-text-fidelity').textContent = offer.text;
-          document.getElementById('deactivate-offer-fidelity').dataset.offerId = offer.id;
-        } else {
-          document.getElementById('current-offer-panel-fidelity').style.display = 'none';
-        }
-      } catch (e) { console.error(e); }
+    // Carga la oferta activa de Fidelity
+async function loadCurrentOfferFidelity() {
+  try {
+    const res = await fetch(`/api/offersFidelity?hotel_id=${HOTEL_ID}`);
+    if (!res.ok) throw new Error(res.statusText);
+    const { offer } = await res.json();
+    if (offer) {
+      document.getElementById('current-offer-panel-fidelity').style.display = 'block';
+      document.getElementById('current-offer-text-fidelity').textContent = offer.text;
+      document
+        .getElementById('deactivate-offer-fidelity')
+        .dataset.offerId = offer.id;
+    } else {
+      document.getElementById('current-offer-panel-fidelity').style.display = 'none';
     }
-    document.getElementById('save-offer-fidelity').onclick = async () => {
-      const text = document.getElementById('offer-text-fidelity').value.trim();
-      if (!text) return alert('Escribe primero la oferta Fidelity');
-      try {
-        const res = await fetch('/api/offersFidelity', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ hotel_id: HOTEL_ID, text })
-        });
-        if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-        document.getElementById('offer-msg-fidelity').style.color = 'green';
-        document.getElementById('offer-msg-fidelity').textContent = 'Oferta Fidelity guardada ✔️';
-        await loadCurrentOfferFidelity();
-      } catch (e) {
-        document.getElementById('offer-msg-fidelity').style.color = 'crimson';
-        document.getElementById('offer-msg-fidelity').textContent = 'Error: ' + e.message;
-      }
-    };
-    document.getElementById('deactivate-offer-fidelity').onclick = async () => {
-      const btn = document.getElementById('deactivate-offer-fidelity');
-      btn.disabled = true;
-      await fetch('/api/offersFidelity', {
-        method: 'PATCH',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ hotel_id: HOTEL_ID, id: btn.dataset.offerId })
-      });
-      btn.disabled = false;
-      await loadCurrentOfferFidelity();
-    };
-    document.addEventListener('DOMContentLoaded', loadCurrentOfferFidelity);
+  } catch (e) {
+    console.error('Error loading Fidelity offer:', e);
+  }
+}
+
+// Guardar nueva oferta Fidelity
+document.getElementById('save-offer-fidelity').addEventListener('click', async () => {
+  const text = document.getElementById('offer-text-fidelity').value.trim();
+  if (!text) return alert('Escribe primero la oferta Fidelity');
+  try {
+    const res = await fetch('/api/offersFidelity', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hotel_id: HOTEL_ID, text })
+    });
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+    document.getElementById('offer-msg-fidelity').style.color = 'green';
+    document.getElementById('offer-msg-fidelity').textContent = 'Oferta Fidelity guardada ✔️';
+    document.getElementById('offer-text-fidelity').value = '';
+    await loadCurrentOfferFidelity();
+  } catch (e) {
+    document.getElementById('offer-msg-fidelity').style.color = 'crimson';
+    document.getElementById('offer-msg-fidelity').textContent = 'Error: ' + e.message;
+  }
+});
+
+// Desactivar oferta Fidelity
+document.getElementById('deactivate-offer-fidelity').addEventListener('click', async () => {
+  const btn = document.getElementById('deactivate-offer-fidelity');
+  btn.disabled = true;
+  await fetch('/api/offersFidelity', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hotel_id: HOTEL_ID, id: btn.dataset.offerId })
+  });
+  btn.disabled = false;
+  await loadCurrentOfferFidelity();
+});
+
+// Arrancar
+document.addEventListener('DOMContentLoaded', loadCurrentOfferFidelity);
   </script>
 </body>
 </html>
