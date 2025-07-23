@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IA Manager Insights Fidelity</title>
+  <style>
+    :root {
+      --bg-page: #f5f7f8;
+      --bg-panel: #ffffff;
+      --text-dark: #333333;
+      --text-accent: #004a7c;
+      --highlight: #1abc9c;
+      --btn-bg: #ffffff;
+      --btn-border: #004a7c;
+      --btn-text: #004a7c;
+      --btn-hover-bg: #1abc9c;
+      --btn-hover-text: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-page);
+      color: var(--text-dark);
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.5;
+      padding: 1.5em;
+      display: flex;
+      justify-content: center;
+    }
+    .container { max-width: 1000px; width: 100%; }
+
+    header {
+      display: flex; align-items: center; gap: 1em; margin-bottom: 0.5em;
+    }
+    header img { height: 80px; width: auto; }
+    header h1 {
+      color: var(--text-accent); font-size: 2em; font-weight: bold;
+    }
+
+    .controls {
+      margin: 1em 0; text-align: left;
+    }
+    .controls button {
+      background: var(--btn-bg);
+      border: 2px solid var(--btn-border);
+      border-radius: 4px;
+      color: var(--btn-text);
+      cursor: pointer;
+      font-size: 1em;
+      margin-right: 0.5em;
+      padding: 0.6em 1.2em;
+      transition: background 0.2s, color 0.2s;
+    }
+    .controls button:hover {
+      background: var(--btn-hover-bg);
+      color: var(--btn-hover-text);
+      border-color: var(--btn-hover-bg);
+    }
+
+    .dashboard { display: flex; gap: 1.5em; }
+    .report-panel, .report-panel-fidelity { flex: 2; }
+    .offer-panel, .offer-panel-fidelity {
+      flex: 1; background: var(--bg-panel);
+      border: 1px solid #ddd; border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      padding: 1em; height: fit-content;
+    }
+
+    #loading, #loading-fidelity {
+      color: var(--highlight); font-style: italic; margin-top: 1em;
+    }
+    #error, #error-fidelity {
+      color: crimson; margin-top: 1em;
+    }
+
+    #output, #output-fidelity {
+      background: var(--bg-panel);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      color: var(--text-dark);
+      margin-top: 1.5em;
+      padding: 1.25em;
+      white-space: pre-wrap;
+      min-height: 200px;
+    }
+    #output em, #output-fidelity em {
+      color: var(--highlight);
+      font-style: normal;
+      font-weight: bold;
+    }
+
+    #offer-section, #offer-section-fidelity { margin-top: 1em; }
+    #offer-section-fidelity h2, #offer-section h2 {
+      margin-bottom: 0.5em; color: var(--text-accent);
+    }
+    textarea {
+      width: 100%; padding: 0.5em;
+      border: 1px solid #ccc; border-radius: 4px;
+      margin-bottom: 0.5em; font-size: 1em;
+    }
+    .btn, #save-offer-fidelity, #deactivate-offer-fidelity {
+      background: var(--btn-bg);
+      border: 2px solid var(--btn-border);
+      border-radius: 4px;
+      color: var(--btn-text);
+      cursor: pointer;
+      font-size: 1em;
+      padding: 0.6em 1.2em;
+      transition: background 0.2s, color 0.2s;
+      margin-right: 0.5em;
+    }
+    .btn:hover, #save-offer-fidelity:hover {
+      background: var(--btn-hover-bg);
+      color: var(--btn-hover-text);
+      border-color: var(--btn-hover-bg);
+    }
+    #offer-msg-fidelity { margin-top: 0.5em; font-size: 0.9em; }
+
+    #current-offer-panel-fidelity {
+      margin-top: 1em; border-top: 1px solid #ddd;
+      padding-top: 1em; display: none;
+    }
+    #current-offer-panel-fidelity p { margin: 0.5em 0; }
+    #deactivate-offer-fidelity {
+      border-color: crimson; color: crimson;
+      font-size: 0.9em; padding: 0.4em 0.8em;
+    }
+    #deactivate-offer-fidelity:hover {
+      background: crimson; color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="/logos/ia-manager-insights-logo.png" alt="Logo IA Manager Insights" />
+      <h1>IA Manager Insights</h1>
+    </header>
+    <div class="controls">
+      <button id="b7">Últimos 7 días</button>
+      <button id="b30">Últimos 30 días</button>
+      <button id="ball">Todo el período</button>
+    </div>
+
+    <!-- IA General -->
+    <div class="dashboard">
+      <div class="report-panel">
+        <p id="loading" style="display:none;">Cargando informe…</p>
+        <p id="error" style="display:none;"></p>
+        <div id="output"></div>
+      </div>
+      <div class="offer-panel" id="offer-section">
+        <h2>Añadir nueva oferta</h2>
+        <textarea id="offer-text" rows="4" placeholder="Describe la promoción del hotel..."></textarea>
+        <button class="btn" id="save-offer">Guardar oferta</button>
+        <p id="offer-msg"></p>
+        <div id="current-offer-panel">
+          <strong>Oferta activa:</strong>
+          <p id="current-offer-text"></p>
+          <button class="btn" id="deactivate-offer">Desactivar oferta</button>
+        </div>
+      </div>
+    </div>
+
+    <hr style="margin:2em 0; border:none; border-top:1px solid #ccc;" />
+    <h2 style="color: var(--text-accent);">IA Fidelity Hotels v1</h2>
+
+    <!-- IA Fidelity -->
+    <div class="dashboard">
+      <div class="report-panel-fidelity">
+        <p id="loading-fidelity" style="display:none;">Cargando informe Fidelity…</p>
+        <p id="error-fidelity" style="display:none;"></p>
+        <div id="output-fidelity"></div>
+      </div>
+      <div class="offer-panel-fidelity" id="offer-section-fidelity">
+        <h2>Ofertas Fidelidad</h2>
+        <textarea id="offer-text-fidelity" rows="4" placeholder="Describe la promoción Fidelity..."></textarea>
+        <button class="btn" id="save-offer-fidelity">Guardar oferta Fidelity</button>
+        <p id="offer-msg-fidelity"></p>
+        <div id="current-offer-panel-fidelity">
+          <strong>Oferta Fidelity activa:</strong>
+          <p id="current-offer-text-fidelity"></p>
+          <button class="btn" id="deactivate-offer-fidelity">Desactivar oferta Fidelity</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const HOTEL_ID = 'sierracazorla';
+
+    // IA General
+    async function fetchInforme(period) {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('output').textContent = '';
+      try {
+        const res = await fetch(`/api/generate-report?period=${period}`);
+        if (!res.ok) throw new Error(await res.text());
+        const { informe } = await res.json();
+        document.getElementById('output').innerHTML = informe
+          .replace(/→ (\d+) usuarios/, '→ <em>$1 usuarios</em>')
+          .replace(/• (.+?): (\d+) interacciones \(([\d.]+)%\)/g,
+                   '• <em>$1</em>: <em>$2</em> interacciones (<em>$3%</em>)');
+      } catch (e) {
+        document.getElementById('error').textContent = 'Error: ' + e.message;
+        document.getElementById('error').style.display = 'block';
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+    document.getElementById('b7').onclick = () => fetchInforme('7');
+    document.getElementById('b30').onclick = () => fetchInforme('30');
+    document.getElementById('ball').onclick = () => fetchInforme('all');
+
+    // Ofertas General
+    async function loadCurrentOffer() {
+      try {
+        const res = await fetch(`/api/offers?hotel_id=${HOTEL_ID}`);
+        if (!res.ok) throw new Error(res.statusText);
+        const { offer } = await res.json();
+        if (offer) {
+          document.getElementById('current-offer-panel').style.display = 'block';
+          document.getElementById('current-offer-text').textContent = offer.text;
+          document.getElementById('deactivate-offer').dataset.offerId = offer.id;
+        } else {
+          document.getElementById('current-offer-panel').style.display = 'none';
+        }
+      } catch (e) { console.error(e); }
+    }
+    document.getElementById('save-offer').onclick = async () => {
+      const text = document.getElementById('offer-text').value.trim();
+      if (!text) return alert('Escribe primero una promoción');
+      try {
+        const res = await fetch('/api/offers', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ hotel_id: HOTEL_ID, text })
+        });
+        if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+        document.getElementById('offer-msg').style.color = 'green';
+        document.getElementById('offer-msg').textContent = 'Oferta guardada ✔️';
+        document.getElementById('offer-text').value = '';
+        await loadCurrentOffer();
+      } catch (e) {
+        document.getElementById('offer-msg').style.color = 'crimson';
+        document.getElementById('offer-msg').textContent = 'Error: ' + e.message;
+      }
+    };
+    document.getElementById('deactivate-offer').onclick = async () => {
+      const btn = document.getElementById('deactivate-offer');
+      btn.disabled = true;
+      await fetch('/api/offers', {
+        method: 'PATCH', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ hotel_id: HOTEL_ID, id: btn.dataset.offerId })
+      });
+      btn.disabled = false;
+      await loadCurrentOffer();
+    };
+    document.addEventListener('DOMContentLoaded', loadCurrentOffer);
+
+    // IA Fidelity
+    async function fetchInformeFidelity(period) {
+      document.getElementById('loading-fidelity').style.display = 'block';
+      document.getElementById('error-fidelity').style.display = 'none';
+      document.getElementById('output-fidelity').textContent = '';
+      try {
+        const res = await fetch(`/api/generate-report-fidelity?period=${period}`);
+        if (!res.ok) throw new Error(await res.text());
+        const { informe } = await res.json();
+        document.getElementById('output-fidelity').innerHTML = informe
+          .replace(/→ (\d+) usuarios/, '→ <em>$1 usuarios</em>')
+          .replace(/• (.+?): (\d+) interacciones \(([\d.]+)%\)/g,
+                   '• <em>$1</em>: <em>$2</em> interacciones (<em>$3%</em>)');
+      } catch (e) {
+        document.getElementById('error-fidelity').textContent = 'Error: ' + e.message;
+        document.getElementById('error-fidelity').style.display = 'block';
+      } finally {
+        document.getElementById('loading-fidelity').style.display = 'none';
+      }
+    }
+    document.getElementById('b7').onclick = () => fetchInformeFidelity('7');
+    document.getElementById('b30').onclick = () => fetchInformeFidelity('30');
+    document.getElementById('ball').onclick = () => fetchInformeFidelity('all');
+
+    // Ofertas Fidelity
+    async function loadCurrentOfferFidelity() {
+      try {
+        const res = await fetch(`/api/offersFidelity?hotel_id=${HOTEL_ID}`);
+        if (!res.ok) throw new Error(res.statusText);
+        const { offer } = await res.json();
+        if (offer) {
+          document.getElementById('current-offer-panel-fidelity').style.display = 'block';
+          document.getElementById('current-offer-text-fidelity').textContent = offer.text;
+          document.getElementById('deactivate-offer-fidelity').dataset.offerId = offer.id;
+        } else {
+          document.getElementById('current-offer-panel-fidelity').style.display = 'none';
+        }
+      } catch (e) { console.error(e); }
+    }
+    document.getElementById('save-offer-fidelity').onclick = async () => {
+      const text = document.getElementById('offer-text-fidelity').value.trim();
+      if (!text) return alert('Escribe primero la oferta Fidelity');
+      try {
+        const res = await fetch('/api/offersFidelity', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ hotel_id: HOTEL_ID, text })
+        });
+        if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+        document.getElementById('offer-msg-fidelity').style.color = 'green';
+        document.getElementById('offer-msg-fidelity').textContent = 'Oferta Fidelity guardada ✔️';
+        document.getElementById('offer-text-fidelity').value = '';
+        await loadCurrentOfferFidelity();
+      } catch (e) {
+        document.getElementById('offer-msg-fidelity').style.color = 'crimson';
+        document.getElementById('offer-msg-fidelity').textContent = 'Error: ' + e.message;
+      }
+    };
+    document.getElementById('deactivate-offer-fidelity').onclick = async () => {
+      const btn = document.getElementById('deactivate-offer-fidelity');
+      btn.disabled = true;
+      await fetch('/api/offersFidelity', {
+        method: 'PATCH',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ hotel_id: HOTEL_ID, id: btn.dataset.offerId })
+      });
+      btn.disabled = false;
+      await loadCurrentOfferFidelity();
+    };
+    document.addEventListener('DOMContentLoaded', loadCurrentOfferFidelity);
+  </script>
+</body>
+</html>
+```
+
