@@ -2,6 +2,7 @@
 
 import OpenAI from "openai";
 import { supabase } from "./supabaseClient.js";
+import { getFidelityOffersText } from "./offersFidelityHelper.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -20,16 +21,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 🔁 Crear un nuevo thread en OpenAI
+    // 🧠 Recuperar texto de ofertas específicas para clientes Fidelity
+    const ofertasTexto = await getFidelityOffersText();
+
+    // 🔁 Crear nuevo thread
     const thread = await openai.beta.threads.create();
 
-    // 1️⃣ Mensaje inicial de sistema (si quieres inyectar instrucciones)
+    // 1️⃣ Inyección de ofertas como mensaje del asistente
     await openai.beta.threads.messages.create(thread.id, {
       role: "assistant",
       content: `
-Eres un asistente IA especializado en fidelización de huéspedes de hotel.
-Responde de forma amable y útil, ofreciendo sugerencias del hotel.
-Resume internamente lo que el cliente busca para propósitos analíticos.
+🎁 *OFERTAS EXCLUSIVAS FIDELITY* 🎁
+${ofertasTexto}
+
+→ Eres el asistente personalizado para clientes fidelizados. Integra las ofertas arriba cuando sea relevante.
 `.trim()
     });
 
@@ -39,9 +44,9 @@ Resume internamente lo que el cliente busca para propósitos analíticos.
       content: message,
     });
 
-    // ▶️ Lanzar el run del asistente específico para Fidelity
+    // ▶️ Ejecutar el asistente GENERAL (el mismo de producción)
     const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: process.env.ASSISTANT_ID_FIDELITY, // ⚠️ este será tu nuevo asistente de fidelización
+      assistant_id: process.env.ASSISTANT_ID, // mismo que chat.js
     });
 
     let status = "queued";
@@ -57,7 +62,7 @@ Resume internamente lo que el cliente busca para propósitos analíticos.
       return res.status(500).json({ error: `Ejecución fallida. Estado: ${status}` });
     }
 
-    // 📩 Obtener la respuesta final del asistente
+    // 📩 Obtener la respuesta
     const messages = await openai.beta.threads.messages.list(thread.id);
     const assistantMsg = messages.data.find((m) => m.role === "assistant");
     const reply = assistantMsg?.content?.[0]?.text?.value?.trim();
@@ -70,7 +75,7 @@ Resume internamente lo que el cliente busca para propósitos analíticos.
     const resumen_interaccion = { preguntas: [message] };
     const meta = {
       modelo: "OpenAI Assistant (Thread)",
-      assistant_id: process.env.ASSISTANT_ID_FIDELITY
+      assistant_id: process.env.ASSISTANT_ID
     };
 
     const { error: insertError } = await supabase
