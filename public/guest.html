@@ -24,20 +24,11 @@
       font-family: "Helvetica Neue", Arial, sans-serif;
       padding: 1.5em;
     }
-    .container {
-      max-width: 600px;
-      margin: auto;
-    }
-    h1 { 
-      color: var(--text-accent); 
-      margin-bottom: 1em; 
-      text-align: center; 
-    }
-    /* Código QR */
+    .container { max-width: 600px; margin: auto; }
+    h1 { color: var(--text-accent); margin-bottom: 1em; text-align: center; }
     #qr-logo { text-align: center; margin-bottom: 1em; }
     #qr-logo img { max-width: 200px; width: 100%; height: auto; }
 
-    /* Saludo */
     #guest-info {
       background: var(--bg-panel);
       border-radius: 6px;
@@ -49,7 +40,6 @@
       display: none;
     }
 
-    /* Login */
     #login {
       background: var(--bg-panel);
       border: 1px solid #ddd;
@@ -80,7 +70,6 @@
       border-color: var(--btn-hover-bg);
     }
 
-    /* Oferta activa */
     #offer-panel {
       background: var(--bg-panel);
       border: 1px solid #ddd;
@@ -91,7 +80,6 @@
     }
     #offer-panel h2 { color: var(--text-accent); margin-bottom: 0.5em; }
 
-    /* Chat */
     #chat { margin-top: 1.5em; display: none; }
     #messages {
       background: var(--bg-panel);
@@ -132,15 +120,14 @@
 </head>
 <body>
   <div class="container">
-
     <h1>IA Fidelity Hotels</h1>
 
-    <!-- LOGO / CÓDIGO QR -->
+    <!-- LOGO / QR -->
     <div id="qr-logo">
       <img src="/logos/QrCode-Fidelity.jpg" alt="Escanea para entrar en IA Fidelity Hotels" />
     </div>
 
-    <!-- Saludo personalizado -->
+    <!-- Saludo -->
     <div id="guest-info"></div>
 
     <!-- LOGIN -->
@@ -155,7 +142,7 @@
       <button id="btn-login">Entrar</button>
     </div>
 
-    <!-- OFERTA ACTIVA -->
+    <!-- OFERTA -->
     <div id="offer-panel">
       <h2>Oferta para ti</h2>
       <p id="current-offer-text">Cargando…</p>
@@ -186,10 +173,10 @@
       }
     }
 
-    // Handler de login
+    // LOGIN
     document.getElementById('btn-login').onclick = () => {
-      const last = document.getElementById('inp-last').value.trim();
-      const room = document.getElementById('inp-room').value.trim();
+      const last  = document.getElementById('inp-last').value.trim();
+      const room  = document.getElementById('inp-room').value.trim();
       if (!last || !room) {
         alert('Apellido y número de habitación son obligatorios.');
         return;
@@ -204,57 +191,60 @@
     };
 
     if (!isLogged()) {
-      // Si no está logueado, paramos aquí
+      // si no está logueado, detenemos aquí
       throw '';
     }
 
-    // Ya logueado: recogemos datos y escondemos login
+    // tras login: ocultar form, mostrar saludo
     const G = JSON.parse(localStorage.getItem(LS_KEY));
     document.getElementById('login').style.display = 'none';
-
-    // Mostrar saludo
     const info = document.getElementById('guest-info');
-    info.textContent = `Bienvenido, ${G.lastName} — Habitación ${G.room}`;
+    info.textContent = `Bienvenido/a a IA Fidelity Hotels, ${G.lastName} — Habitación ${G.room}`;
     info.style.display = 'block';
 
     let convId = null;
 
     // 1) Obtener o crear interacción
     async function initConversation() {
-      const { data } = await supabase
-        .from('interacciones_fidelity')
-        .select('id')
-        .eq('hotel_id', G.hotel_id)
-        .eq('habitacion', G.room)
-        .order('fecha_hora', { ascending: false })
-        .limit(1);
-
-      if (data?.[0]) {
-        convId = data[0].id;
-      } else {
-        const insert = await supabase
+      try {
+        const { data } = await supabase
           .from('interacciones_fidelity')
-          .insert([{ hotel_id: G.hotel_id, habitacion: G.room, nombre_cliente: G.lastName }])
-          .select('id');
-        convId = insert.data[0].id;
+          .select('id')
+          .eq('hotel_id', G.hotel_id)
+          .eq('habitacion', G.room)
+          .order('fecha_hora', { ascending: false })
+          .limit(1);
+
+        if (data?.[0]) {
+          convId = data[0].id;
+        } else {
+          const insert = await supabase
+            .from('interacciones_fidelity')
+            .insert([{ hotel_id: G.hotel_id, habitacion: G.room, nombre_cliente: G.lastName }])
+            .select('id');
+          convId = insert.data[0].id;
+        }
+      } catch (err) {
+        console.error('Error initConversation:', err);
       }
     }
 
     // 2) Cargar oferta
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
-      const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
-      if (res.ok) {
+      try {
+        const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
+        if (!res.ok) throw new Error(await res.text());
         const { offer } = await res.json();
         document.getElementById('current-offer-text').textContent =
           offer?.text || 'No hay ofertas activas en este momento.';
-      } else {
-        document.getElementById('current-offer-text').textContent =
-          'Error al cargar la oferta.';
+      } catch (err) {
+        console.error('Error loadOffer:', err);
+        document.getElementById('current-offer-text').textContent = 'Error al cargar la oferta.';
       }
     }
 
-    // 3) Añadir mensaje al chat
+    // 3) Mostrar mensaje en chat
     function addMsg(who, txt) {
       const div = document.createElement('div');
       div.className = 'msg';
@@ -264,52 +254,71 @@
       ms.scrollTop = ms.scrollHeight;
     }
 
-    // 4) Inicializar chat
+    // 4) Iniciar chat
     async function initChat() {
       await initConversation();
       await loadOffer();
       document.getElementById('chat').style.display = 'block';
 
+      // Enter = enviar
+      const ta = document.getElementById('inp');
+      ta.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          document.getElementById('btn-send').click();
+        }
+      });
+
       document.getElementById('btn-send').onclick = async () => {
-        const message = document.getElementById('inp').value.trim();
+        const message = ta.value.trim();
         if (!message) return;
-
         addMsg(G.lastName, message);
-        document.getElementById('inp').value = '';
+        ta.value = '';
 
-        // Guardar pregunta en la interaccion
-        await fetch('/api/conversacion-fidelity', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id_conversacion: convId,
-            resumen_interaccion: { pregunta: message }
-          })
-        });
+        // Guardar en Conversación
+        try {
+          await fetch('/api/conversacion-fidelity', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id_conversacion: convId,
+              resumen_interaccion: { pregunta: message }
+            })
+          });
+        } catch (err) {
+          console.error('Error patch conversacion:', err);
+        }
 
-        // Llamar al asistente
-        const res = await fetch('/api/chat-fidelity', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message,
-            hotel_id: G.hotel_id,
-            habitacion: G.room,
-            nombre_cliente: G.lastName,
-            canal: 'web'
-          })
-        });
-        const { reply } = await res.json();
-        addMsg('IA', reply || 'Lo siento, no obtuve respuesta.');
+        // Llamar IA
+        try {
+          const res = await fetch('/api/chat-fidelity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message,
+              hotel_id: G.hotel_id,
+              habitacion: G.room,
+              nombre_cliente: G.lastName,
+              canal: 'web'
+            })
+          });
+          if (!res.ok) throw new Error(await res.text());
+          const { reply } = await res.json();
+          addMsg('IA', reply || 'Lo siento, no obtuve respuesta.');
+        } catch (err) {
+          console.error('Error chat-fidelity:', err);
+          addMsg('IA', 'Disculpa, hubo un problema al procesar tu solicitud.');
+        }
       };
     }
 
     initChat().catch(() => {
-      /* en caso de error de login, se queda el form visible */
+      /* si hay fallo, dejamos el login visible */
     });
   </script>
 </body>
 </html>
+
 
 
 
