@@ -283,7 +283,7 @@
         });
 
         // Pedir la respuesta a la IA
-        const resp = await fetch('/api/assistant-fidelity', {
+        const resp = await fetch('/api/chat-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id_interaccion: convId })
