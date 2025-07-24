@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         canal: canal || null,
         meta: meta || null,
         categoria: categoria || null,
-        // no enviamos resumen_interaccion aquí, se irá llenando con PATCH
+        // resumen_interaccion se rellenará con PATCH
       }])
       .select();
 
@@ -38,20 +38,20 @@ export default async function handler(req, res) {
   // PATCH: añadir una pregunta al resumen y actualizar categoría
   if (req.method === 'PATCH') {
     const {
-      id_interaccion,           // el UUID de la fila que vamos a actualizar
+      id_conversacion,          // antes usábamos id_interaccion
       resumen_interaccion,      // { pregunta: 'texto de la pregunta' }
       categoria: nuevaCategoria // categoría detectada por IA (opcional)
     } = req.body;
 
-    if (!id_interaccion || !resumen_interaccion?.pregunta) {
-      return res.status(400).json({ error: 'Falta id_interaccion o resumen_interaccion.pregunta' });
+    if (!id_conversacion || !resumen_interaccion?.pregunta) {
+      return res.status(400).json({ error: 'Falta id_conversacion o resumen_interaccion.pregunta' });
     }
 
     // 1) Leer el resumen y categoría actuales
     const { data: existing, error: fetchError } = await supabase
       .from('interacciones_fidelity')
       .select('resumen_interaccion, categoria')
-      .eq('id', id_interaccion)
+      .eq('id', id_conversacion)
       .single();
     if (fetchError) return res.status(500).json({ error: fetchError.message });
 
@@ -65,7 +65,6 @@ export default async function handler(req, res) {
       resumen_interaccion: { ...old, preguntas }
     };
     if (nuevaCategoria) {
-      // podrías acumular o reemplazar; aquí reemplazamos con la última detectada
       updateData.categoria = nuevaCategoria;
     }
 
@@ -73,7 +72,7 @@ export default async function handler(req, res) {
     const { data, error: updError } = await supabase
       .from('interacciones_fidelity')
       .update(updateData)
-      .eq('id', id_interaccion)
+      .eq('id', id_conversacion)
       .select();
     if (updError) return res.status(500).json({ error: updError.message });
 
