@@ -1,0 +1,286 @@
+//guest.html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IA Fidelity Hotels - Huésped</title>
+  <style>
+    :root {
+      --bg-page: #f5f7f8;
+      --bg-panel: #ffffff;
+      --text-dark: #333333;
+      --text-accent: #004a7c;
+      --highlight: #1abc9c;
+      --btn-bg: #ffffff;
+      --btn-border: #004a7c;
+      --btn-text: #004a7c;
+      --btn-hover-bg: #1abc9c;
+      --btn-hover-text: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-page);
+      color: var(--text-dark);
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      padding: 1.5em;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 { color: var(--text-accent); margin-bottom: 1em; }
+    /* Login */
+    #login {
+      background: var(--bg-panel);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 1em;
+    }
+    #login input {
+      width: 100%;
+      padding: 0.5em;
+      margin-top: 0.3em;
+      margin-bottom: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #login button {
+      background: var(--btn-bg);
+      border: 2px solid var(--btn-border);
+      border-radius: 4px;
+      padding: 0.6em 1.2em;
+      color: var(--btn-text);
+      cursor: pointer;
+      font-size: 1em;
+      transition: background 0.2s,color 0.2s;
+    }
+    #login button:hover {
+      background: var(--btn-hover-bg);
+      color: var(--btn-hover-text);
+      border-color: var(--btn-hover-bg);
+    }
+    /* Oferta activa */
+    #offer-panel {
+      background: var(--bg-panel);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 1em;
+      margin-top: 1.5em;
+    }
+    #offer-panel h2 {
+      color: var(--text-accent);
+      margin-bottom: 0.5em;
+    }
+    /* Chat */
+    #chat {
+      margin-top: 1.5em;
+    }
+    #messages {
+      background: var(--bg-panel);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      height: 300px;
+      padding: 1em;
+      overflow-y: auto;
+    }
+    #chat textarea {
+      width: 100%;
+      padding: 0.5em;
+      margin-top: 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+    }
+    #chat button {
+      margin-top: 0.5em;
+      background: var(--btn-bg);
+      border: 2px solid var(--btn-border);
+      border-radius: 4px;
+      padding: 0.6em 1.2em;
+      color: var(--btn-text);
+      cursor: pointer;
+      font-size: 1em;
+      transition: background 0.2s,color 0.2s;
+    }
+    #chat button:hover {
+      background: var(--btn-hover-bg);
+      color: var(--btn-hover-text);
+      border-color: var(--btn-hover-bg);
+    }
+    .msg {
+      margin-bottom: 0.8em;
+    }
+    .msg strong {
+      display: inline-block;
+      width: 60px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <h1>IA Fidelity Hotels</h1>
+
+    <!-- LOGIN -->
+    <div id="login">
+      <h2>Identifícate</h2>
+      <label>Apellido:<br/>
+        <input id="inp-last" placeholder="Tu apellido"/>
+      </label>
+      <label>Habitación:<br/>
+        <input id="inp-room" placeholder="Número de habitación"/>
+      </label>
+      <button id="btn-login">Entrar</button>
+    </div>
+
+    <!-- OFERTA ACTIVA -->
+    <div id="offer-panel" style="display:none;">
+      <h2>Oferta para ti</h2>
+      <p id="current-offer-text">Cargando…</p>
+    </div>
+
+    <!-- CHAT -->
+    <div id="chat" style="display:none;">
+      <div id="messages"></div>
+      <textarea id="inp" rows="2" placeholder="Escribe tu pregunta…"></textarea>
+      <button id="btn-send">Enviar</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // --- Constantes y Supabase ---
+    const LS_KEY = 'fidelity_guest';
+    const supabase = createClient(
+      'https://TU_SUPABASE_URL.supabase.co', 
+      'TU_SUPABASE_ANON_KEY'
+    );
+
+    // 1) Función para saber si ya estamos “logueados”
+    function isLogged() {
+      try {
+        const G = JSON.parse(localStorage.getItem(LS_KEY));
+        return G && G.lastName && G.room;
+      } catch {
+        return false;
+      }
+    }
+
+    // 2) Login handler
+    document.getElementById('btn-login').onclick = () => {
+      const last = document.getElementById('inp-last').value.trim();
+      const room = document.getElementById('inp-room').value.trim();
+      if (!last || !room) {
+        return alert('Apellido y número de habitación son obligatorios.');
+      }
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        hotel_id: 'sierracazorla',
+        lastName: last,
+        room,
+        registeredAt: new Date().toISOString()
+      }));
+      location.reload();
+    };
+
+    // 3) Arrancar si ya logueado
+    if (!isLogged()) {
+      // No hacemos nada más; login sigue visible
+      throw '';
+    }
+
+    // Ocultamos el login
+    document.getElementById('login').style.display = 'none';
+
+    // Cargamos datos del huésped
+    const G = JSON.parse(localStorage.getItem(LS_KEY));
+    let convId = null;
+
+    // 4) Obtener o crear conversación en interacciones_fidelity
+    async function initConversation() {
+      const { data } = await supabase
+        .from('interacciones_fidelity')
+        .select('id')
+        .eq('hotel_id', G.hotel_id)
+        .eq('room', G.room)
+        .order('fecha_hora', { ascending: false })
+        .limit(1);
+
+      if (data?.[0]) {
+        convId = data[0].id;
+      } else {
+        const insert = await supabase
+          .from('interacciones_fidelity')
+          .insert([{
+            hotel_id: G.hotel_id,
+            room: G.room,
+            nombre_cliente: G.lastName
+          }])
+          .select('id');
+        convId = insert.data[0].id;
+      }
+    }
+
+    // 5) Mostrar oferta activa
+    async function loadOffer() {
+      document.getElementById('offer-panel').style.display = 'block';
+      const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
+      if (res.ok) {
+        const { offer } = await res.json();
+        document.getElementById('current-offer-text').textContent =
+          offer?.text || 'No hay ofertas activas en este momento.';
+      } else {
+        document.getElementById('current-offer-text').textContent =
+          'Error al cargar la oferta.';
+      }
+    }
+
+    // 6) Función de añadir mensaje al chat
+    function addMsg(who, text) {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.innerHTML = `<strong>${who}:</strong> ${text}`;
+      const ms = document.getElementById('messages');
+      ms.append(div);
+      ms.scrollTop = ms.scrollHeight;
+    }
+
+    // 7) Inicializar chat UI y handlers
+    async function initChat() {
+      await initConversation();
+      await loadOffer();
+      document.getElementById('chat').style.display = 'block';
+
+      document.getElementById('btn-send').onclick = async () => {
+        const txt = document.getElementById('inp').value.trim();
+        if (!txt) return;
+        addMsg(G.lastName, txt);
+        document.getElementById('inp').value = '';
+
+        // a) Guardar la pregunta
+        await fetch('/api/conversacionFidelity.js', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_conversacion: convId,
+            resumen_interaccion: { pregunta: txt }
+          })
+        });
+
+        // b) Solicitar respuesta al backend
+        const resp = await fetch('/api/assistantFidelity.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_conversacion: convId })
+        });
+        const { respuesta } = await resp.json();
+        addMsg('IA', respuesta);
+      };
+    }
+
+    // Arrancamos todo
+    initChat().catch(() => {/* login muestra */});
+  </script>
+</body>
+</html>
