@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       .from('interacciones_fidelity')
       .insert([{
         hotel_id,
-        room,
+        habitacion: room,
         nombre_cliente,
         canal: canal || null,
         meta: meta || null,
@@ -31,29 +31,35 @@ export default async function handler(req, res) {
       }])
       .select();
 
-    if (error) return res.status(500).json({ error: error.message });
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
     return res.status(200).json(data[0]);
   }
 
-  // PATCH: añadir una pregunta al resumen y actualizar categoría
+  // PATCH: añadir una pregunta al resumen y (opcionalmente) actualizar categoría
   if (req.method === 'PATCH') {
     const {
-      id_conversacion,          // antes usábamos id_interaccion
-      resumen_interaccion,      // { pregunta: 'texto de la pregunta' }
+      id_interaccion,          // el UUID de la fila que vamos a actualizar
+      resumen_interaccion,     // { pregunta: 'texto de la pregunta' }
       categoria: nuevaCategoria // categoría detectada por IA (opcional)
     } = req.body;
 
-    if (!id_conversacion || !resumen_interaccion?.pregunta) {
-      return res.status(400).json({ error: 'Falta id_conversacion o resumen_interaccion.pregunta' });
+    if (!id_interaccion || !resumen_interaccion?.pregunta) {
+      return res.status(400).json({
+        error: 'Falta id_interaccion o resumen_interaccion.pregunta'
+      });
     }
 
     // 1) Leer el resumen y categoría actuales
     const { data: existing, error: fetchError } = await supabase
       .from('interacciones_fidelity')
       .select('resumen_interaccion, categoria')
-      .eq('id', id_conversacion)
+      .eq('id', id_interaccion)
       .single();
-    if (fetchError) return res.status(500).json({ error: fetchError.message });
+    if (fetchError) {
+      return res.status(500).json({ error: fetchError.message });
+    }
 
     // 2) Asegurar array de preguntas y añadir la nueva
     const old = existing.resumen_interaccion || { preguntas: [] };
@@ -65,20 +71,24 @@ export default async function handler(req, res) {
       resumen_interaccion: { ...old, preguntas }
     };
     if (nuevaCategoria) {
+      // aquí elegimos reemplazar con la última categoría detectada
       updateData.categoria = nuevaCategoria;
     }
 
-    // 4) Actualizar en Supabase
+    // 4) Ejecutar el UPDATE
     const { data, error: updError } = await supabase
       .from('interacciones_fidelity')
       .update(updateData)
-      .eq('id', id_conversacion)
+      .eq('id', id_interaccion)
       .select();
-    if (updError) return res.status(500).json({ error: updError.message });
+    if (updError) {
+      return res.status(500).json({ error: updError.message });
+    }
 
     return res.status(200).json(data[0]);
   }
 
+  // Métodos no permitidos
   res.setHeader('Allow', ['POST', 'PATCH']);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
