@@ -24,25 +24,11 @@
       font-family: "Helvetica Neue", Arial, sans-serif;
       padding: 1.5em;
     }
-    .container {
-      max-width: 600px;
-      margin: auto;
-    }
-    h1 { 
-      color: var(--text-accent); 
-      margin-bottom: 1em; 
-      text-align: center; 
-    }
+    .container { max-width: 600px; margin: auto; }
+    h1 { color: var(--text-accent); margin-bottom: 1em; text-align: center; }
     /* Código QR */
-    #qr-logo {
-      text-align: center;
-      margin-bottom: 1em;
-    }
-    #qr-logo img {
-      max-width: 200px;
-      width: 100%;
-      height: auto;
-    }
+    #qr-logo { text-align: center; margin-bottom: 1em; }
+    #qr-logo img { max-width: 200px; width: 100%; height: auto; }
     /* Login */
     #login {
       background: var(--bg-panel);
@@ -81,14 +67,9 @@
       padding: 1em;
       margin-top: 1.5em;
     }
-    #offer-panel h2 {
-      color: var(--text-accent);
-      margin-bottom: 0.5em;
-    }
+    #offer-panel h2 { color: var(--text-accent); margin-bottom: 0.5em; }
     /* Chat */
-    #chat {
-      margin-top: 1.5em;
-    }
+    #chat { margin-top: 1.5em; }
     #messages {
       background: var(--bg-panel);
       border: 1px solid #ddd;
@@ -122,13 +103,8 @@
       color: var(--btn-hover-text);
       border-color: var(--btn-hover-bg);
     }
-    .msg {
-      margin-bottom: 0.8em;
-    }
-    .msg strong {
-      display: inline-block;
-      width: 60px;
-    }
+    .msg { margin-bottom: 0.8em; }
+    .msg strong { display: inline-block; width: 60px; }
   </style>
 </head>
 <body>
@@ -171,10 +147,8 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const LS_KEY = 'fidelity_guest';
-
-    // Tu URL y tu ANON key (o use variables de entorno NEXT_PUBLIC_*)
     const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpeXd4Y2hlcHBweWp3cG5oenpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk4MTQsImV4cCI6MjA2Nzg5NTgxNH0.nW5Sq9tSxaK10aqJfvM8eQ2L3LKFykzBZu3qCzZXUqs';
+    const supabaseKey = 'TU_SUPABASE_ANON_KEY';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     function isLogged() {
@@ -277,19 +251,31 @@
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id_interaccion: convId,
+            id_conversacion: convId,
             resumen_interaccion: { pregunta: txt }
           })
         });
 
-        // Pedir la respuesta a la IA
-        const resp = await fetch('/api/chat-fidelity', {
+        // —— AHORA SÍ: INVOCAMOS chat-fidelity CON TODOS LOS CAMPOS —— 
+        const res = await fetch('/api/chat-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_interaccion: convId })
+          body: JSON.stringify({
+            message: txt,
+            hotel_id: G.hotel_id,
+            habitacion: G.room,
+            nombre_cliente: G.lastName,
+            canal: 'web'
+          })
         });
-        const { respuesta } = await resp.json();
-        addMsg('IA', respuesta);
+
+        if (!res.ok) {
+          const err = await res.text();
+          return addMsg('Error', err);
+        }
+
+        const { reply } = await res.json();
+        addMsg('IA', reply);
       };
     }
 
@@ -297,6 +283,7 @@
   </script>
 </body>
 </html>
+
 
 
 
