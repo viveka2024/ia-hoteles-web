@@ -34,15 +34,21 @@
       text-align: center; 
     }
     /* Código QR */
-    #qr-logo {
-      text-align: center;
+    #qr-logo { text-align: center; margin-bottom: 1em; }
+    #qr-logo img { max-width: 200px; width: 100%; height: auto; }
+
+    /* Saludo */
+    #guest-info {
+      background: var(--bg-panel);
+      border-radius: 6px;
+      padding: 0.75em;
       margin-bottom: 1em;
+      text-align: center;
+      font-weight: bold;
+      color: var(--text-accent);
+      display: none;
     }
-    #qr-logo img {
-      max-width: 200px;
-      width: 100%;
-      height: auto;
-    }
+
     /* Login */
     #login {
       background: var(--bg-panel);
@@ -73,6 +79,7 @@
       color: var(--btn-hover-text);
       border-color: var(--btn-hover-bg);
     }
+
     /* Oferta activa */
     #offer-panel {
       background: var(--bg-panel);
@@ -80,15 +87,12 @@
       border-radius: 6px;
       padding: 1em;
       margin-top: 1.5em;
+      display: none;
     }
-    #offer-panel h2 {
-      color: var(--text-accent);
-      margin-bottom: 0.5em;
-    }
+    #offer-panel h2 { color: var(--text-accent); margin-bottom: 0.5em; }
+
     /* Chat */
-    #chat {
-      margin-top: 1.5em;
-    }
+    #chat { margin-top: 1.5em; display: none; }
     #messages {
       background: var(--bg-panel);
       border: 1px solid #ddd;
@@ -122,13 +126,8 @@
       color: var(--btn-hover-text);
       border-color: var(--btn-hover-bg);
     }
-    .msg {
-      margin-bottom: 0.8em;
-    }
-    .msg strong {
-      display: inline-block;
-      width: 60px;
-    }
+    .msg { margin-bottom: 0.8em; }
+    .msg strong { display: inline-block; width: 60px; }
   </style>
 </head>
 <body>
@@ -140,6 +139,9 @@
     <div id="qr-logo">
       <img src="/logos/QrCode-Fidelity.jpg" alt="Escanea para entrar en IA Fidelity Hotels" />
     </div>
+
+    <!-- Saludo personalizado -->
+    <div id="guest-info"></div>
 
     <!-- LOGIN -->
     <div id="login">
@@ -154,13 +156,13 @@
     </div>
 
     <!-- OFERTA ACTIVA -->
-    <div id="offer-panel" style="display:none;">
+    <div id="offer-panel">
       <h2>Oferta para ti</h2>
       <p id="current-offer-text">Cargando…</p>
     </div>
 
     <!-- CHAT -->
-    <div id="chat" style="display:none;">
+    <div id="chat">
       <div id="messages"></div>
       <textarea id="inp" rows="2" placeholder="Escribe tu pregunta…"></textarea>
       <button id="btn-send">Enviar</button>
@@ -171,8 +173,6 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const LS_KEY = 'fidelity_guest';
-
-    // Tu URL y tu ANON key (o usa variables de entorno NEXT_PUBLIC_*)
     const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpeXd4Y2hlcHBweWp3cG5oenpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk4MTQsImV4cCI6MjA2Nzg5NTgxNH0.nW5Sq9tSxaK10aqJfvM8eQ2L3LKFykzBZu3qCzZXUqs';
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -186,11 +186,13 @@
       }
     }
 
+    // Handler de login
     document.getElementById('btn-login').onclick = () => {
       const last = document.getElementById('inp-last').value.trim();
       const room = document.getElementById('inp-room').value.trim();
       if (!last || !room) {
-        return alert('Apellido y número de habitación son obligatorios.');
+        alert('Apellido y número de habitación son obligatorios.');
+        return;
       }
       localStorage.setItem(LS_KEY, JSON.stringify({
         hotel_id: 'sierracazorla',
@@ -202,16 +204,22 @@
     };
 
     if (!isLogged()) {
-      // Si no está logueado, detenemos aquí y dejamos el login visible
+      // Si no está logueado, paramos aquí
       throw '';
     }
 
-    // Ya logueado: ocultamos el login y arrancamos
-    document.getElementById('login').style.display = 'none';
+    // Ya logueado: recogemos datos y escondemos login
     const G = JSON.parse(localStorage.getItem(LS_KEY));
+    document.getElementById('login').style.display = 'none';
+
+    // Mostrar saludo
+    const info = document.getElementById('guest-info');
+    info.textContent = `Bienvenido, ${G.lastName} — Habitación ${G.room}`;
+    info.style.display = 'block';
+
     let convId = null;
 
-    // 1) Obtener o crear la interacción (usa columna `habitacion`)
+    // 1) Obtener o crear interacción
     async function initConversation() {
       const { data } = await supabase
         .from('interacciones_fidelity')
@@ -226,17 +234,13 @@
       } else {
         const insert = await supabase
           .from('interacciones_fidelity')
-          .insert([{
-            hotel_id: G.hotel_id,
-            habitacion: G.room,
-            nombre_cliente: G.lastName
-          }])
+          .insert([{ hotel_id: G.hotel_id, habitacion: G.room, nombre_cliente: G.lastName }])
           .select('id');
         convId = insert.data[0].id;
       }
     }
 
-    // 2) Cargar la oferta activa
+    // 2) Cargar oferta
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
       const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
@@ -251,49 +255,58 @@
     }
 
     // 3) Añadir mensaje al chat
-    function addMsg(who, text) {
+    function addMsg(who, txt) {
       const div = document.createElement('div');
       div.className = 'msg';
-      div.innerHTML = `<strong>${who}:</strong> ${text}`;
+      div.innerHTML = `<strong>${who}:</strong> ${txt}`;
       const ms = document.getElementById('messages');
       ms.append(div);
       ms.scrollTop = ms.scrollHeight;
     }
 
-    // 4) Inicializar chat y handlers
+    // 4) Inicializar chat
     async function initChat() {
       await initConversation();
       await loadOffer();
       document.getElementById('chat').style.display = 'block';
 
       document.getElementById('btn-send').onclick = async () => {
-        const txt = document.getElementById('inp').value.trim();
-        if (!txt) return;
-        addMsg(G.lastName, txt);
+        const message = document.getElementById('inp').value.trim();
+        if (!message) return;
+
+        addMsg(G.lastName, message);
         document.getElementById('inp').value = '';
 
-        // Guardar la pregunta en la interacción
+        // Guardar pregunta en la interaccion
         await fetch('/api/conversacion-fidelity', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id_interaccion: convId,
-            resumen_interaccion: { pregunta: txt }
+            id_conversacion: convId,
+            resumen_interaccion: { pregunta: message }
           })
         });
 
-        // Pedir la respuesta a la IA
-        const resp = await fetch('/api/chat-fidelity', {
+        // Llamar al asistente
+        const res = await fetch('/api/chat-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_interaccion: convId })
+          body: JSON.stringify({
+            message,
+            hotel_id: G.hotel_id,
+            habitacion: G.room,
+            nombre_cliente: G.lastName,
+            canal: 'web'
+          })
         });
-        const { reply /* o “respuesta” según tu handler */ } = await resp.json();
-        addMsg('IA', reply || '…');
+        const { reply } = await res.json();
+        addMsg('IA', reply || 'Lo siento, no obtuve respuesta.');
       };
     }
 
-    initChat().catch(() => {/* Login permanece visible */});
+    initChat().catch(() => {
+      /* en caso de error de login, se queda el form visible */
+    });
   </script>
 </body>
 </html>
