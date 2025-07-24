@@ -28,7 +28,11 @@
       max-width: 600px;
       margin: auto;
     }
-    h1 { color: var(--text-accent); margin-bottom: 1em; text-align: center; }
+    h1 { 
+      color: var(--text-accent); 
+      margin-bottom: 1em; 
+      text-align: center; 
+    }
     /* Código QR */
     #qr-logo {
       text-align: center;
@@ -49,8 +53,7 @@
     #login input {
       width: 100%;
       padding: 0.5em;
-      margin-top: 0.3em;
-      margin-bottom: 1em;
+      margin: 0.3em 0 1em;
       border: 1px solid #ccc;
       border-radius: 4px;
     }
@@ -169,8 +172,9 @@
 
     const LS_KEY = 'fidelity_guest';
     const supabase = createClient(
-      'https://TU_SUPABASE_URL.supabase.co',
-      'TU_SUPABASE_ANON_KEY'
+      // usadas en Vercel como variables NEXT_PUBLIC_*
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
     function isLogged() {
@@ -198,15 +202,16 @@
     };
 
     if (!isLogged()) {
-      // dejamos sólo el login visible
+      // si no está logged, detenemos el script y dejamos el form visible
       throw '';
     }
 
+    // Ya logueado: oculto el login y cargo todo
     document.getElementById('login').style.display = 'none';
-
     const G = JSON.parse(localStorage.getItem(LS_KEY));
     let convId = null;
 
+    // 1) Obtener o crear registro en interacciones_fidelity
     async function initConversation() {
       const { data } = await supabase
         .from('interacciones_fidelity')
@@ -231,6 +236,7 @@
       }
     }
 
+    // 2) Cargo la oferta activa
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
       const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
@@ -244,6 +250,7 @@
       }
     }
 
+    // 3) Muestra un mensaje en el chat
     function addMsg(who, text) {
       const div = document.createElement('div');
       div.className = 'msg';
@@ -253,6 +260,7 @@
       ms.scrollTop = ms.scrollHeight;
     }
 
+    // 4) Inicializo todo el flujo de chat
     async function initChat() {
       await initConversation();
       await loadOffer();
@@ -264,7 +272,8 @@
         addMsg(G.lastName, txt);
         document.getElementById('inp').value = '';
 
-        await fetch('/api/conversacionFidelity', {
+        // guardo la pregunta
+        await fetch('/api/conversacion-fidelity', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -273,7 +282,8 @@
           })
         });
 
-        const resp = await fetch('/api/assistantFidelity', {
+        // pido la respuesta a la IA
+        const resp = await fetch('/api/assistant-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id_conversacion: convId })
@@ -283,7 +293,7 @@
       };
     }
 
-    initChat().catch(() => {/* login queda visible */});
+    initChat().catch(() => {/* si no está logged, se ve login */});
   </script>
 </body>
 </html>
