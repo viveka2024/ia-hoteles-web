@@ -24,11 +24,25 @@
       font-family: "Helvetica Neue", Arial, sans-serif;
       padding: 1.5em;
     }
-    .container { max-width: 600px; margin: auto; }
-    h1 { color: var(--text-accent); margin-bottom: 1em; text-align: center; }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 { 
+      color: var(--text-accent); 
+      margin-bottom: 1em; 
+      text-align: center; 
+    }
     /* Código QR */
-    #qr-logo { text-align: center; margin-bottom: 1em; }
-    #qr-logo img { max-width: 200px; width: 100%; height: auto; }
+    #qr-logo {
+      text-align: center;
+      margin-bottom: 1em;
+    }
+    #qr-logo img {
+      max-width: 200px;
+      width: 100%;
+      height: auto;
+    }
     /* Login */
     #login {
       background: var(--bg-panel);
@@ -67,9 +81,14 @@
       padding: 1em;
       margin-top: 1.5em;
     }
-    #offer-panel h2 { color: var(--text-accent); margin-bottom: 0.5em; }
+    #offer-panel h2 {
+      color: var(--text-accent);
+      margin-bottom: 0.5em;
+    }
     /* Chat */
-    #chat { margin-top: 1.5em; }
+    #chat {
+      margin-top: 1.5em;
+    }
     #messages {
       background: var(--bg-panel);
       border: 1px solid #ddd;
@@ -103,8 +122,13 @@
       color: var(--btn-hover-text);
       border-color: var(--btn-hover-bg);
     }
-    .msg { margin-bottom: 0.8em; }
-    .msg strong { display: inline-block; width: 60px; }
+    .msg {
+      margin-bottom: 0.8em;
+    }
+    .msg strong {
+      display: inline-block;
+      width: 60px;
+    }
   </style>
 </head>
 <body>
@@ -147,8 +171,10 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const LS_KEY = 'fidelity_guest';
+
+    // Tu URL y tu ANON key (o use variables de entorno NEXT_PUBLIC_*)
     const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
-    const supabaseKey = 'TU_SUPABASE_ANON_KEY';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpeXd4Y2hlcHBweWp3cG5oenpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk4MTQsImV4cCI6MjA2Nzg5NTgxNH0.nW5Sq9tSxaK10aqJfvM8eQ2L3LKFykzBZu3qCzZXUqs';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     function isLogged() {
@@ -185,7 +211,7 @@
     const G = JSON.parse(localStorage.getItem(LS_KEY));
     let convId = null;
 
-    // 1) Obtener o crear la interacción (usa columna `habitacion`)
+    // 1) Obtener o crear la interacción (usa columna habitacion)
     async function initConversation() {
       const { data } = await supabase
         .from('interacciones_fidelity')
@@ -213,7 +239,7 @@
     // 2) Cargar la oferta activa
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
-      const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
+      const res = await fetch(/api/offersFidelity?hotel_id=${G.hotel_id});
       if (res.ok) {
         const { offer } = await res.json();
         document.getElementById('current-offer-text').textContent =
@@ -228,7 +254,7 @@
     function addMsg(who, text) {
       const div = document.createElement('div');
       div.className = 'msg';
-      div.innerHTML = `<strong>${who}:</strong> ${text}`;
+      div.innerHTML = <strong>${who}:</strong> ${text};
       const ms = document.getElementById('messages');
       ms.append(div);
       ms.scrollTop = ms.scrollHeight;
@@ -251,31 +277,19 @@
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id_conversacion: convId,
+            id_interaccion: convId,
             resumen_interaccion: { pregunta: txt }
           })
         });
 
-        // —— AHORA SÍ: INVOCAMOS chat-fidelity CON TODOS LOS CAMPOS —— 
-        const res = await fetch('/api/chat-fidelity', {
+        // Pedir la respuesta a la IA
+        const resp = await fetch('/api/chat-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: txt,
-            hotel_id: G.hotel_id,
-            habitacion: G.room,
-            nombre_cliente: G.lastName,
-            canal: 'web'
-          })
+          body: JSON.stringify({ id_interaccion: convId })
         });
-
-        if (!res.ok) {
-          const err = await res.text();
-          return addMsg('Error', err);
-        }
-
-        const { reply } = await res.json();
-        addMsg('IA', reply);
+        const { respuesta } = await resp.json();
+        addMsg('IA', respuesta);
       };
     }
 
