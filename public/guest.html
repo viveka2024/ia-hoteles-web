@@ -28,7 +28,17 @@
       max-width: 600px;
       margin: auto;
     }
-    h1 { color: var(--text-accent); margin-bottom: 1em; }
+    h1 { color: var(--text-accent); margin-bottom: 1em; text-align: center; }
+    /* Código QR */
+    #qr-logo {
+      text-align: center;
+      margin-bottom: 1em;
+    }
+    #qr-logo img {
+      max-width: 200px;
+      width: 100%;
+      height: auto;
+    }
     /* Login */
     #login {
       background: var(--bg-panel);
@@ -53,6 +63,7 @@
       cursor: pointer;
       font-size: 1em;
       transition: background 0.2s,color 0.2s;
+      width: 100%;
     }
     #login button:hover {
       background: var(--btn-hover-bg);
@@ -101,6 +112,7 @@
       cursor: pointer;
       font-size: 1em;
       transition: background 0.2s,color 0.2s;
+      width: 100%;
     }
     #chat button:hover {
       background: var(--btn-hover-bg);
@@ -120,6 +132,11 @@
   <div class="container">
 
     <h1>IA Fidelity Hotels</h1>
+
+    <!-- LOGO / CÓDIGO QR -->
+    <div id="qr-logo">
+      <img src="/logos/QrCode-Fidelity.jpg" alt="Escanea para entrar en IA Fidelity Hotels" />
+    </div>
 
     <!-- LOGIN -->
     <div id="login">
@@ -150,14 +167,12 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // --- Constantes y Supabase ---
     const LS_KEY = 'fidelity_guest';
     const supabase = createClient(
-      'https://TU_SUPABASE_URL.supabase.co', 
+      'https://TU_SUPABASE_URL.supabase.co',
       'TU_SUPABASE_ANON_KEY'
     );
 
-    // 1) Función para saber si ya estamos “logueados”
     function isLogged() {
       try {
         const G = JSON.parse(localStorage.getItem(LS_KEY));
@@ -167,7 +182,6 @@
       }
     }
 
-    // 2) Login handler
     document.getElementById('btn-login').onclick = () => {
       const last = document.getElementById('inp-last').value.trim();
       const room = document.getElementById('inp-room').value.trim();
@@ -183,20 +197,16 @@
       location.reload();
     };
 
-    // 3) Arrancar si ya logueado
     if (!isLogged()) {
-      // No hacemos nada más; login sigue visible
+      // dejamos sólo el login visible
       throw '';
     }
 
-    // Ocultamos el login
     document.getElementById('login').style.display = 'none';
 
-    // Cargamos datos del huésped
     const G = JSON.parse(localStorage.getItem(LS_KEY));
     let convId = null;
 
-    // 4) Obtener o crear conversación en interacciones_fidelity
     async function initConversation() {
       const { data } = await supabase
         .from('interacciones_fidelity')
@@ -221,7 +231,6 @@
       }
     }
 
-    // 5) Mostrar oferta activa
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
       const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
@@ -235,7 +244,6 @@
       }
     }
 
-    // 6) Función de añadir mensaje al chat
     function addMsg(who, text) {
       const div = document.createElement('div');
       div.className = 'msg';
@@ -245,7 +253,6 @@
       ms.scrollTop = ms.scrollHeight;
     }
 
-    // 7) Inicializar chat UI y handlers
     async function initChat() {
       await initConversation();
       await loadOffer();
@@ -257,8 +264,7 @@
         addMsg(G.lastName, txt);
         document.getElementById('inp').value = '';
 
-        // a) Guardar la pregunta
-        await fetch('/api/conversacionFidelity.js', {
+        await fetch('/api/conversacionFidelity', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -267,8 +273,7 @@
           })
         });
 
-        // b) Solicitar respuesta al backend
-        const resp = await fetch('/api/assistantFidelity.js', {
+        const resp = await fetch('/api/assistantFidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id_conversacion: convId })
@@ -278,8 +283,8 @@
       };
     }
 
-    // Arrancamos todo
-    initChat().catch(() => {/* login muestra */});
+    initChat().catch(() => {/* login queda visible */});
   </script>
 </body>
 </html>
+
