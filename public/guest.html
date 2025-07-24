@@ -133,6 +133,7 @@
 </head>
 <body>
   <div class="container">
+
     <h1>IA Fidelity Hotels</h1>
 
     <!-- LOGO / CÓDIGO QR -->
@@ -170,13 +171,17 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const LS_KEY = 'fidelity_guest';
-    let supabase; 
-    let G, convId;
+
+    // ← ESTE BLOQUE ES EL ÚNICO CAMBIO ↓
+    const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpeXd4Y2hlcHBweWp3cG5oenpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk4MTQsImV4cCI6MjA2Nzg5NTgxNH0.nW5Sq9tSxaK10aqJfvM8eQ2L3LKFykzBZu3qCzZXUqs';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    // ← FIN DEL CAMBIO
 
     function isLogged() {
       try {
-        const v = JSON.parse(localStorage.getItem(LS_KEY));
-        return v && v.lastName && v.room;
+        const G = JSON.parse(localStorage.getItem(LS_KEY));
+        return G && G.lastName && G.room;
       } catch {
         return false;
       }
@@ -197,13 +202,15 @@
       location.reload();
     };
 
-    // Carga dinámica de la URL y la ANON KEY
-    async function loadConfig() {
-      const res = await fetch('/api/config-fidelity');
-      if (!res.ok) throw new Error('No pude cargar la configuración');
-      const { supabaseUrl, supabaseAnonKey } = await res.json();
-      supabase = createClient(supabaseUrl, supabaseAnonKey);
+    if (!isLogged()) {
+      // Si no está logueado, detenemos aquí y mostramos sólo el form
+      throw '';
     }
+
+    // Ya logueado: oculto el login y cargo toda la lógica
+    document.getElementById('login').style.display = 'none';
+    const G = JSON.parse(localStorage.getItem(LS_KEY));
+    let convId = null;
 
     async function initConversation() {
       const { data } = await supabase
@@ -219,7 +226,11 @@
       } else {
         const insert = await supabase
           .from('interacciones_fidelity')
-          .insert([{ hotel_id: G.hotel_id, room: G.room, nombre_cliente: G.lastName }])
+          .insert([{
+            hotel_id: G.hotel_id,
+            room: G.room,
+            nombre_cliente: G.lastName
+          }])
           .select('id');
         convId = insert.data[0].id;
       }
@@ -268,7 +279,7 @@
           })
         });
 
-        // Pedir respuesta IA
+        // Pedir respuesta a la IA
         const resp = await fetch('/api/assistant-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -279,20 +290,10 @@
       };
     }
 
-    // Flujo principal
-    (async () => {
-      try {
-        await loadConfig();
-        if (!isLogged()) throw '';
-        G = JSON.parse(localStorage.getItem(LS_KEY));
-        document.getElementById('login').style.display = 'none';
-        await initChat();
-      } catch {
-        // si no está logueado, deja solo el login visible
-      }
-    })();
+    initChat().catch(() => {/* si no está logged, se ve el login */});
   </script>
 </body>
 </html>
+
 
 
