@@ -172,10 +172,9 @@
 
     const LS_KEY = 'fidelity_guest';
 
-    // Aquí tu URL y tu anon key
+    // Tu URL y tu ANON key (o use variables de entorno NEXT_PUBLIC_*)
     const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpeXd4Y2hlcHBweWp3cG5oenpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk4MTQsImV4cCI6MjA2Nzg5NTgxNH0.nW5Sq9tSxaK10aqJfvM8eQ2L3LKFykzBZu3qCzZXUqs';
-
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     function isLogged() {
@@ -212,13 +211,13 @@
     const G = JSON.parse(localStorage.getItem(LS_KEY));
     let convId = null;
 
-    // 1) Obtener o crear la interacción (uso campo `habitacion`)
+    // 1) Obtener o crear la interacción (usa columna `habitacion`)
     async function initConversation() {
       const { data } = await supabase
         .from('interacciones_fidelity')
         .select('id')
         .eq('hotel_id', G.hotel_id)
-        .eq('habitacion', G.room)         // aquí
+        .eq('habitacion', G.room)
         .order('fecha_hora', { ascending: false })
         .limit(1);
 
@@ -229,7 +228,7 @@
           .from('interacciones_fidelity')
           .insert([{
             hotel_id: G.hotel_id,
-            habitacion: G.room,           // y aquí
+            habitacion: G.room,
             nombre_cliente: G.lastName
           }])
           .select('id');
@@ -237,7 +236,7 @@
       }
     }
 
-    // 2) Cargar oferta
+    // 2) Cargar la oferta activa
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
       const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
@@ -273,21 +272,21 @@
         addMsg(G.lastName, txt);
         document.getElementById('inp').value = '';
 
-        // Guardar la pregunta en la conversación
+        // Guardar la pregunta en la interacción
         await fetch('/api/conversacion-fidelity', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id_interaccion: convId,                 // aquí
+            id_interaccion: convId,
             resumen_interaccion: { pregunta: txt }
           })
         });
 
-        // Pedir la respuesta al endpoint de IA
+        // Pedir la respuesta a la IA
         const resp = await fetch('/api/assistant-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_interaccion: convId }) // y aquí
+          body: JSON.stringify({ id_interaccion: convId })
         });
         const { respuesta } = await resp.json();
         addMsg('IA', respuesta);
@@ -298,6 +297,7 @@
   </script>
 </body>
 </html>
+
 
 
 
