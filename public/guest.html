@@ -65,8 +65,8 @@
       color: var(--btn-text);
       cursor: pointer;
       font-size: 1em;
-      transition: background 0.2s,color 0.2s;
       width: 100%;
+      transition: background 0.2s, color 0.2s;
     }
     #login button:hover {
       background: var(--btn-hover-bg);
@@ -114,8 +114,8 @@
       color: var(--btn-text);
       cursor: pointer;
       font-size: 1em;
-      transition: background 0.2s,color 0.2s;
       width: 100%;
+      transition: background 0.2s, color 0.2s;
     }
     #chat button:hover {
       background: var(--btn-hover-bg);
@@ -172,11 +172,11 @@
 
     const LS_KEY = 'fidelity_guest';
 
-    // ← ESTE BLOQUE ES EL ÚNICO CAMBIO ↓
+    // Aquí tu URL y tu anon key
     const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpeXd4Y2hlcHBweWp3cG5oenpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk4MTQsImV4cCI6MjA2Nzg5NTgxNH0.nW5Sq9tSxaK10aqJfvM8eQ2L3LKFykzBZu3qCzZXUqs';
+
     const supabase = createClient(supabaseUrl, supabaseKey);
-    // ← FIN DEL CAMBIO
 
     function isLogged() {
       try {
@@ -203,21 +203,22 @@
     };
 
     if (!isLogged()) {
-      // Si no está logueado, detenemos aquí y mostramos sólo el form
+      // Si no está logueado, detenemos aquí y dejamos el login visible
       throw '';
     }
 
-    // Ya logueado: oculto el login y cargo toda la lógica
+    // Ya logueado: ocultamos el login y arrancamos
     document.getElementById('login').style.display = 'none';
     const G = JSON.parse(localStorage.getItem(LS_KEY));
     let convId = null;
 
+    // 1) Obtener o crear la interacción (uso campo `habitacion`)
     async function initConversation() {
       const { data } = await supabase
         .from('interacciones_fidelity')
         .select('id')
         .eq('hotel_id', G.hotel_id)
-        .eq('room', G.room)
+        .eq('habitacion', G.room)         // aquí
         .order('fecha_hora', { ascending: false })
         .limit(1);
 
@@ -228,7 +229,7 @@
           .from('interacciones_fidelity')
           .insert([{
             hotel_id: G.hotel_id,
-            room: G.room,
+            habitacion: G.room,           // y aquí
             nombre_cliente: G.lastName
           }])
           .select('id');
@@ -236,6 +237,7 @@
       }
     }
 
+    // 2) Cargar oferta
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
       const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
@@ -249,6 +251,7 @@
       }
     }
 
+    // 3) Añadir mensaje al chat
     function addMsg(who, text) {
       const div = document.createElement('div');
       div.className = 'msg';
@@ -258,6 +261,7 @@
       ms.scrollTop = ms.scrollHeight;
     }
 
+    // 4) Inicializar chat y handlers
     async function initChat() {
       await initConversation();
       await loadOffer();
@@ -269,31 +273,32 @@
         addMsg(G.lastName, txt);
         document.getElementById('inp').value = '';
 
-        // Guardar la pregunta
+        // Guardar la pregunta en la conversación
         await fetch('/api/conversacion-fidelity', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id_interaccion: convId,
+            id_interaccion: convId,                 // aquí
             resumen_interaccion: { pregunta: txt }
           })
         });
 
-        // Pedir respuesta a la IA
+        // Pedir la respuesta al endpoint de IA
         const resp = await fetch('/api/assistant-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_interaccion: convId })
+          body: JSON.stringify({ id_interaccion: convId }) // y aquí
         });
         const { respuesta } = await resp.json();
         addMsg('IA', respuesta);
       };
     }
 
-    initChat().catch(() => {/* si no está logged, se ve el login */});
+    initChat().catch(() => {/* Login permanece visible */});
   </script>
 </body>
 </html>
+
 
 
 
