@@ -133,7 +133,6 @@
 </head>
 <body>
   <div class="container">
-
     <h1>IA Fidelity Hotels</h1>
 
     <!-- LOGO / CÓDIGO QR -->
@@ -171,16 +170,13 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const LS_KEY = 'fidelity_guest';
-    const supabase = createClient(
-      // usadas en Vercel como variables NEXT_PUBLIC_*
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
+    let supabase; 
+    let G, convId;
 
     function isLogged() {
       try {
-        const G = JSON.parse(localStorage.getItem(LS_KEY));
-        return G && G.lastName && G.room;
+        const v = JSON.parse(localStorage.getItem(LS_KEY));
+        return v && v.lastName && v.room;
       } catch {
         return false;
       }
@@ -201,17 +197,14 @@
       location.reload();
     };
 
-    if (!isLogged()) {
-      // si no está logged, detenemos el script y dejamos el form visible
-      throw '';
+    // Carga dinámica de la URL y la ANON KEY
+    async function loadConfig() {
+      const res = await fetch('/api/config-fidelity');
+      if (!res.ok) throw new Error('No pude cargar la configuración');
+      const { supabaseUrl, supabaseAnonKey } = await res.json();
+      supabase = createClient(supabaseUrl, supabaseAnonKey);
     }
 
-    // Ya logueado: oculto el login y cargo todo
-    document.getElementById('login').style.display = 'none';
-    const G = JSON.parse(localStorage.getItem(LS_KEY));
-    let convId = null;
-
-    // 1) Obtener o crear registro en interacciones_fidelity
     async function initConversation() {
       const { data } = await supabase
         .from('interacciones_fidelity')
@@ -226,17 +219,12 @@
       } else {
         const insert = await supabase
           .from('interacciones_fidelity')
-          .insert([{
-            hotel_id: G.hotel_id,
-            room: G.room,
-            nombre_cliente: G.lastName
-          }])
+          .insert([{ hotel_id: G.hotel_id, room: G.room, nombre_cliente: G.lastName }])
           .select('id');
         convId = insert.data[0].id;
       }
     }
 
-    // 2) Cargo la oferta activa
     async function loadOffer() {
       document.getElementById('offer-panel').style.display = 'block';
       const res = await fetch(`/api/offersFidelity?hotel_id=${G.hotel_id}`);
@@ -250,7 +238,6 @@
       }
     }
 
-    // 3) Muestra un mensaje en el chat
     function addMsg(who, text) {
       const div = document.createElement('div');
       div.className = 'msg';
@@ -260,7 +247,6 @@
       ms.scrollTop = ms.scrollHeight;
     }
 
-    // 4) Inicializo todo el flujo de chat
     async function initChat() {
       await initConversation();
       await loadOffer();
@@ -272,29 +258,41 @@
         addMsg(G.lastName, txt);
         document.getElementById('inp').value = '';
 
-        // guardo la pregunta
+        // Guardar la pregunta
         await fetch('/api/conversacion-fidelity', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id_conversacion: convId,
+            id_interaccion: convId,
             resumen_interaccion: { pregunta: txt }
           })
         });
 
-        // pido la respuesta a la IA
+        // Pedir respuesta IA
         const resp = await fetch('/api/assistant-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_conversacion: convId })
+          body: JSON.stringify({ id_interaccion: convId })
         });
         const { respuesta } = await resp.json();
         addMsg('IA', respuesta);
       };
     }
 
-    initChat().catch(() => {/* si no está logged, se ve login */});
+    // Flujo principal
+    (async () => {
+      try {
+        await loadConfig();
+        if (!isLogged()) throw '';
+        G = JSON.parse(localStorage.getItem(LS_KEY));
+        document.getElementById('login').style.display = 'none';
+        await initChat();
+      } catch {
+        // si no está logueado, deja solo el login visible
+      }
+    })();
   </script>
 </body>
 </html>
+
 
