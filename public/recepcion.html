@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IA Fidelity Hotels – Recepción</title>
+  <style>
+    :root {
+      --bg-page: #f5f7f8;
+      --bg-panel: #ffffff;
+      --text-dark: #333333;
+      --text-accent: #004a7c;
+      --btn-bg: #ffffff;
+      --btn-border: #004a7c;
+      --btn-text: #004a7c;
+      --btn-hover-bg: #1abc9c;
+      --btn-hover-text: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-page);
+      color: var(--text-dark);
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      padding: 1.5em;
+    }
+    .container { max-width: 600px; margin: auto; }
+    h1 { color: var(--text-accent); text-align: center; margin-bottom: 1em; }
+
+    #guest-info {
+      background: var(--bg-panel);
+      border-radius: 6px;
+      padding: 0.75em;
+      margin-bottom: 1em;
+      text-align: center;
+      font-weight: bold;
+      color: var(--text-accent);
+      display: none;
+    }
+
+    #login {
+      background: var(--bg-panel);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 1em;
+      margin-bottom: 1em;
+    }
+    #login input {
+      width: 100%;
+      padding: 0.5em;
+      margin: 0.3em 0 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    #login button {
+      background: var(--btn-bg);
+      border: 2px solid var(--btn-border);
+      border-radius: 4px;
+      padding: 0.6em 1.2em;
+      color: var(--btn-text);
+      cursor: pointer;
+      font-size: 1em;
+      width: 100%;
+      transition: background 0.2s, color 0.2s;
+    }
+    #login button:hover {
+      background: var(--btn-hover-bg);
+      color: var(--btn-hover-text);
+      border-color: var(--btn-hover-bg);
+    }
+
+    #chat { display: none; }
+    #messages {
+      background: var(--bg-panel);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      height: 300px;
+      padding: 1em;
+      overflow-y: auto;
+      margin-bottom: 0.5em;
+    }
+    #chat textarea {
+      width: 100%;
+      padding: 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1em;
+      margin-bottom: 0.5em;
+    }
+    #chat button {
+      background: var(--btn-bg);
+      border: 2px solid var(--btn-border);
+      border-radius: 4px;
+      padding: 0.6em 1.2em;
+      color: var(--btn-text);
+      cursor: pointer;
+      font-size: 1em;
+      width: 100%;
+      transition: background 0.2s, color 0.2s;
+    }
+    #chat button:hover {
+      background: var(--btn-hover-bg);
+      color: var(--btn-hover-text);
+      border-color: var(--btn-hover-bg);
+    }
+    .msg { margin-bottom: 0.8em; }
+    .msg strong { display: inline-block; width: 80px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>IA Fidelity Hotels – Recepción</h1>
+
+    <div id="guest-info"></div>
+
+    <div id="login">
+      <h2>Registrar / Seleccionar Huésped</h2>
+      <label>Apellido:<br/>
+        <input id="inp-last" placeholder="Apellido del huésped"/>
+      </label>
+      <label>Habitación:<br/>
+        <input id="inp-room" placeholder="Número de habitación"/>
+      </label>
+      <button id="btn-login">Crear sesión</button>
+    </div>
+
+    <div id="chat">
+      <div id="messages"></div>
+      <textarea id="inp" rows="2" placeholder="Escribe tu mensaje…"></textarea>
+      <button id="btn-send">Enviar</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const LS_KEY = 'fidelity_reception';
+    const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
+    const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    function isLogged() {
+      try {
+        const R = JSON.parse(localStorage.getItem(LS_KEY));
+        return R && R.convId;
+      } catch {
+        return false;
+      }
+    }
+
+    // Crear o recuperar sesión
+    document.getElementById('btn-login').onclick = async () => {
+      const last = document.getElementById('inp-last').value.trim();
+      const room = document.getElementById('inp-room').value.trim();
+      if (!last || !room) {
+        alert('Apellido y habitación son obligatorios.');
+        return;
+      }
+      try {
+        const res = await fetch('/api/login-fidelity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apellido: last, habitacion: room })
+        });
+        if (!res.ok) {
+          const { error } = await res.json();
+          return alert(error);
+        }
+        const { id } = await res.json();
+        localStorage.setItem(LS_KEY, JSON.stringify({
+          hotel_id: 'sierracazorla',
+          lastName: last,
+          room,
+          convId: id
+        }));
+        location.reload();
+      } catch (err) {
+        console.error('Error login:', err);
+        alert('No hemos podido crear la sesión.');
+      }
+    };
+
+    if (!isLogged()) {
+      // aún no hay sesión, dejamos el formulario visible
+      throw '';
+    }
+
+    // tras login
+    const R = JSON.parse(localStorage.getItem(LS_KEY));
+    document.getElementById('login').style.display = 'none';
+    const info = document.getElementById('guest-info');
+    info.textContent = `Sesión: ${R.lastName}, Habitación ${R.room}`;
+    info.style.display = 'block';
+
+    const convId = R.convId;
+
+    function addMsg(who, txt) {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.innerHTML = `<strong>${who}:</strong> ${txt}`;
+      const ms = document.getElementById('messages');
+      ms.append(div);
+      ms.scrollTop = ms.scrollHeight;
+    }
+
+    // inicia chat
+    document.getElementById('chat').style.display = 'block';
+    const ta = document.getElementById('inp');
+    ta.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('btn-send').click();
+      }
+    });
+
+    document.getElementById('btn-send').onclick = async () => {
+      const message = ta.value.trim();
+      if (!message) return;
+      addMsg(R.lastName, message);
+      ta.value = '';
+
+      // guardar interacción
+      try {
+        await fetch('/api/conversacion-fidelity', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_conversacion: convId,
+            resumen_interaccion: { pregunta: message }
+          })
+        });
+      } catch (err) {
+        console.error('Error patch conversacion:', err);
+      }
+
+      // enviar IA
+      try {
+        const res = await fetch('/api/chat-fidelity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            hotel_id: R.hotel_id,
+            habitacion: R.room,
+            nombre_cliente: R.lastName,
+            canal: 'recepcion'
+          })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const { reply } = await res.json();
+        addMsg('IA', reply || 'No obtuve respuesta.');
+      } catch (err) {
+        console.error('Error chat-fidelity:', err);
+        addMsg('IA', 'Error procesando la solicitud.');
+      }
+    };
+  </script>
+</body>
+</html>
