@@ -164,6 +164,27 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpeXd4Y2hlcHBweWp3cG5oenpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIzMTk4MTQsImV4cCI6MjA2Nzg5NTgxNH0.nW5Sq9tSxaK10aqJfvM8eQ2L3LKFykzBZu3qCzZXUqs';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Verifica en BBDD que existe un huésped con apellido+habitación
+    async function checkGuest(lastName, room) {
+      try {
+        const { data, error } = await supabase
+          .from('interacciones_fidelity')
+          .select('id')
+          .eq('hotel_id', 'sierracazorla')
+          .eq('habitacion', room)
+          .eq('nombre_cliente', lastName)
+          .limit(1);
+        if (error) {
+          console.error('Error verificando huésped:', error);
+          return false;
+        }
+        return data.length > 0;
+      } catch (err) {
+        console.error('checkGuest falló:', err);
+        return false;
+      }
+    }
+
     function isLogged() {
       try {
         const G = JSON.parse(localStorage.getItem(LS_KEY));
@@ -173,12 +194,17 @@
       }
     }
 
-    // LOGIN
-    document.getElementById('btn-login').onclick = () => {
-      const last  = document.getElementById('inp-last').value.trim();
-      const room  = document.getElementById('inp-room').value.trim();
+    // LOGIN actualizado
+    document.getElementById('btn-login').onclick = async () => {
+      const last = document.getElementById('inp-last').value.trim();
+      const room = document.getElementById('inp-room').value.trim();
       if (!last || !room) {
         alert('Apellido y número de habitación son obligatorios.');
+        return;
+      }
+      const ok = await checkGuest(last, room);
+      if (!ok) {
+        alert('No encontramos tu registro. ¿Has informado en recepción?');
         return;
       }
       localStorage.setItem(LS_KEY, JSON.stringify({
@@ -190,12 +216,12 @@
       location.reload();
     };
 
+    // Si no está logueado, detenemos aquí
     if (!isLogged()) {
-      // si no está logueado, detenemos aquí
       throw '';
     }
 
-    // tras login: ocultar form, mostrar saludo
+    // tras login: ocultar form y mostrar saludo
     const G = JSON.parse(localStorage.getItem(LS_KEY));
     document.getElementById('login').style.display = 'none';
     const info = document.getElementById('guest-info');
@@ -214,7 +240,6 @@
           .eq('habitacion', G.room)
           .order('fecha_hora', { ascending: false })
           .limit(1);
-
         if (data?.[0]) {
           convId = data[0].id;
         } else {
@@ -244,7 +269,7 @@
       }
     }
 
-    // 3) Mostrar mensaje en chat
+    // 3) Añadir mensaje en chat
     function addMsg(who, txt) {
       const div = document.createElement('div');
       div.className = 'msg';
@@ -254,7 +279,7 @@
       ms.scrollTop = ms.scrollHeight;
     }
 
-    // 4) Iniciar chat
+    // 4) Inicializar chat completo
     async function initChat() {
       await initConversation();
       await loadOffer();
@@ -275,7 +300,7 @@
         addMsg(G.lastName, message);
         ta.value = '';
 
-        // Guardar en Conversación
+        // Guardar en conversación
         try {
           await fetch('/api/conversacion-fidelity', {
             method: 'PATCH',
@@ -318,11 +343,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
