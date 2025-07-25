@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: fetchError.message });
     }
 
-    // 2) añado la nueva pregunta sobre el array
+    // 2) añado la nueva pregunta al array
     const old = existing.resumen_interaccion || { preguntas: [] };
     const preguntas = Array.isArray(old.preguntas) ? old.preguntas : [];
     preguntas.push(resumen_interaccion.pregunta);
