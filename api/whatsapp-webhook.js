@@ -1,8 +1,8 @@
 // /api/whatsapp-webhook.js
 
-import { supabase } from './supabaseClient'
-import { generarRespuestaIA } from './chat'
- 
+import { supabase } from './supabaseClient.js'
+import { generarRespuestaIA } from './chat.js'
+
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN
   const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
@@ -59,3 +59,4 @@ export default async function handler(req, res) {
   res.setHeader('Allow', ['GET','POST'])
   res.status(405).end(`Method ${req.method} Not Allowed`)
 }
+
