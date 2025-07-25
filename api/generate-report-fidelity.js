@@ -1,4 +1,4 @@
-// /api/generate-report-fidelity.js
+// File: /api/generate-report-fidelity.js
 
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
@@ -22,9 +22,11 @@ export default async function handler(req, res) {
     // 1) Rango de fechas
     const { period } = req.query;
     let fromDate = null;
-    if (period === "7" || period === "30") {
+    // Si period es un número válido (1, 3, 7, 30, etc.), restamos esos días
+    const days = parseInt(period, 10);
+    if (!isNaN(days)) {
       fromDate = new Date();
-      fromDate.setDate(fromDate.getDate() - parseInt(period, 10));
+      fromDate.setDate(fromDate.getDate() - days);
     }
 
     // 2) Trae las interacciones de fidelización
@@ -32,20 +34,25 @@ export default async function handler(req, res) {
       .from("interacciones_fidelity")
       .select("fecha_hora, canal, resumen_interaccion, meta")
       .order("fecha_hora", { ascending: false });
-    if (fromDate) q = q.gte("fecha_hora", fromDate.toISOString());
+    if (fromDate) {
+      q = q.gte("fecha_hora", fromDate.toISOString());
+    }
     const { data: rows, error } = await q;
     if (error) throw error;
 
     // 3) Prepara array de { index, texto } usando resumen_interaccion.preguntas
     const interactions = rows.map((r, i) => {
       let texto = "";
-      if (r.resumen_interaccion && Array.isArray(r.resumen_interaccion.preguntas)) {
+      if (
+        r.resumen_interaccion &&
+        Array.isArray(r.resumen_interaccion.preguntas)
+      ) {
         texto = r.resumen_interaccion.preguntas.join(" | ");
       }
       return { index: i, texto };
     });
 
-    // 4) Clasifica cada texto (igual que generate-report.js)
+    // 4) Clasifica cada texto
     const classifyPrompt = `
 Eres un clasificador de interacciones de clientes para un hotel.
 Recibes un array JSON de objetos con { index, texto } donde texto es lo que el huésped preguntó.
@@ -78,7 +85,7 @@ ${JSON.stringify(interactions, null, 2)}
       const it = interactions.find(x => x.index === c.index);
       if (it) {
         it.tipo_cliente = c.tipo_cliente;
-        it.tematica = c.tematica;
+        it.tematica    = c.tematica;
       }
     });
 
@@ -133,8 +140,7 @@ ${JSON.stringify(resumen, null, 2)}
     const informe = finalResp.choices[0].message.content;
 
     return res.status(200).json({ informe, resumen });
-  }
-  catch (err) {
+  } catch (err) {
     console.error("generate-report-fidelity error:", err);
     return res.status(500).json({ error: err.message });
   }
