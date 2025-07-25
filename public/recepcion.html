@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -134,6 +135,7 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     const LS_KEY = 'fidelity_reception';
+    const HOTEL_ID = 'sierracazorla';
     const supabaseUrl = 'https://xiywxchepppyjwpnhzzl.supabase.co';
     const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -159,7 +161,11 @@
         const res = await fetch('/api/login-fidelity', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ apellido: last, habitacion: room })
+          body: JSON.stringify({
+            apellido: last,
+            habitacion: room,
+            hotel_id: HOTEL_ID
+          })
         });
         if (!res.ok) {
           const { error } = await res.json();
@@ -167,7 +173,7 @@
         }
         const { id } = await res.json();
         localStorage.setItem(LS_KEY, JSON.stringify({
-          hotel_id: 'sierracazorla',
+          hotel_id: HOTEL_ID,
           lastName: last,
           room,
           convId: id
@@ -256,3 +262,5 @@
   </script>
 </body>
 </html>
+```
+
