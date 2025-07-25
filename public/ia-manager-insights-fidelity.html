@@ -218,7 +218,6 @@
           <p id="current-offer-text-fidelity"></p>
           <button class="btn" id="deactivate-offer-fidelity">Desactivar oferta Fidelity</button>
         </div>
-        <!-- --- NUEVO: contenedor para las “tags” de categorías --- -->
         <div id="category-tags-fidelity"></div>
       </div>
     </div>
@@ -314,7 +313,7 @@
       try {
         const res = await fetch(`/api/generate-report-fidelity?period=${period}`);
         if (!res.ok) throw new Error(await res.text());
-        const { informe, resumen } = await res.json
+        const { informe, resumen } = await res.json();  // ← aquí se corrige
 
         // Pinta informe
         document.getElementById('output-fidelity').innerHTML = informe
@@ -322,7 +321,7 @@
           .replace(/• (.+?): (\d+) interacciones \(([\d.]+)%\)/g,
                    '• <em>$1</em>: <em>$2</em> interacciones (<em>$3%</em>)');
 
-        // --- NUEVO: renderiza etiquetas de categorías >12% ---
+        // Renderiza etiquetas de categorías >12%
         const tagContainer = document.getElementById('category-tags-fidelity');
         tagContainer.innerHTML = '';
         (resumen.tematicas || [])
