@@ -194,6 +194,8 @@
     <!-- Controles IA Fidelity -->
     <h2 style="color: var(--text-accent);">IA Fidelity Hotels v1</h2>
     <div class="controls" id="controls-fidelity">
+      <button id="bf1">Último 1 día (Fidelity)</button>
+      <button id="bf3">Últimos 3 días (Fidelity)</button>
       <button id="bf7">Últimos 7 días (Fidelity)</button>
       <button id="bf30">Últimos 30 días (Fidelity)</button>
       <button id="bfall">Todo el período (Fidelity)</button>
@@ -312,7 +314,7 @@
       try {
         const res = await fetch(`/api/generate-report-fidelity?period=${period}`);
         if (!res.ok) throw new Error(await res.text());
-        const { informe, resumen } = await res.json();
+        const { informe, resumen } = await res.json
 
         // Pinta informe
         document.getElementById('output-fidelity').innerHTML = informe
@@ -340,6 +342,8 @@
         document.getElementById('loading-fidelity').style.display = 'none';
       }
     }
+    document.getElementById('bf1').onclick  = () => fetchInformeFidelity('1');
+    document.getElementById('bf3').onclick  = () => fetchInformeFidelity('3');
     document.getElementById('bf7').onclick  = () => fetchInformeFidelity('7');
     document.getElementById('bf30').onclick = () => fetchInformeFidelity('30');
     document.getElementById('bfall').onclick= () => fetchInformeFidelity('all');
