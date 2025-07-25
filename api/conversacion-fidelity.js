@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     return res.status(200).json(data[0]);
   }
 
-  // PATCH: añadir pregunta al resumen y opcionalmente actualizar categoría
+  // PATCH: añadir pregunta al resumen, actualizar categoría y fecha_hora
   if (req.method === 'PATCH') {
     const {
       id_conversacion,           // el UUID de la fila
@@ -68,9 +68,10 @@ export default async function handler(req, res) {
     const preguntas = Array.isArray(old.preguntas) ? old.preguntas : [];
     preguntas.push(resumen_interaccion.pregunta);
 
-    // 3) construyo el objeto de actualización
+    // 3) construyo el objeto de actualización (incluyendo nueva fecha_hora)
     const updateData = {
-      resumen_interaccion: { ...old, preguntas }
+      resumen_interaccion: { ...old, preguntas },
+      fecha_hora: new Date().toISOString()
     };
     if (nuevaCategoria) {
       updateData.categoria = nuevaCategoria;
@@ -94,4 +95,3 @@ export default async function handler(req, res) {
   res.setHeader('Allow', ['POST', 'PATCH']);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
-
