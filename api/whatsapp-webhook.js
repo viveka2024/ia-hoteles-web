@@ -1,7 +1,7 @@
 // /api/whatsapp-webhook.js
 
-import { supabase } from '../api/supabaseClient'
-import { generarRespuestaIA } from '../api/chat'
+import { supabase } from './supabaseClient'
+import { generarRespuestaIA } from './chat'
  
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN
