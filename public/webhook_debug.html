@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Último Webhook Payload</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    pre { background: #f4f4f4; padding: 1rem; border-radius: 4px; max-height: 80vh; overflow: auto; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Payload entrante de WhatsApp</h1>
+  <button id="refresh">🔄 Refrescar</button>
+  <pre id="output">Cargando…</pre>
+
+  <script>
+    async function load() {
+      try {
+        const res = await fetch('/api/whatsapp-webhook?debug=true');
+        const data = await res.json();
+        document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('output').textContent = 'Error al cargar payload';
+      }
+    }
+    document.getElementById('refresh').onclick = load;
+    load();
+  </script>
+</body>
+</html>
