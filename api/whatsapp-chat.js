@@ -1,65 +1,59 @@
 // /api/whatsapp-chat.js
 
 import OpenAI from "openai";
-import { getLatestOfferText } from "./offersHelper.js";
+import { getLatestOfferText } from "./offersHelper.js";  // o la función que uses para recuperar ofertas
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 /**
- * Recibe un objeto { from, text, channel } y devuelve la respuesta del asistente.
+ * Genera una respuesta de IA para WhatsApp
+ * @param {{ from: string, text: string, channel: string }} params
+ * @returns {Promise<string>}
  */
 export async function generarRespuestaIA({ from, text, channel }) {
-  // (Opcional) podrías registrar el mensaje entrante en tu BBDD aquí usando `from` y `channel`
-
-  // 1) Traer la última oferta para contextualizar
+  // Recupera contexto si lo necesitas
   const ofertaTexto = await getLatestOfferText();
 
-  // 2) Crear un nuevo hilo en Threads
+  // Crea un hilo en Threads
   const thread = await openai.beta.threads.create();
 
-  // 3) Inyectar la oferta como mensaje de sistema/assistant
+  // Inyecta oferta como primer mensaje de asistente
   await openai.beta.threads.messages.create(thread.id, {
     role: "assistant",
     content: `
 📢 *PROMOCIÓN ACTUAL* 📢
 ${ofertaTexto}
 
-→ Al responder al usuario, integra esta promoción donde sea relevante.
+→ Integra esta oferta en tu respuesta siempre que tenga sentido.
     `.trim(),
   });
 
-  // 4) Enviar el texto entrante del usuario
+  // Mensaje del usuario
   await openai.beta.threads.messages.create(thread.id, {
     role: "user",
     content: text,
   });
 
-  // 5) Ejecutar el run para obtener la respuesta
+  // Lanza la ejecución del asistente
   const run = await openai.beta.threads.runs.create(thread.id, {
     assistant_id: process.env.ASSISTANT_ID,
   });
 
-  // 6) Esperar a que termine
+  // Espera a que termine
   let status = run.status;
-  while (status !== "completed" && status !== "failed" && status !== "cancelled") {
-    await new Promise((r) => setTimeout(r, 1000));
-    const updated = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-    status = updated.status;
+  while (status === "queued") {
+    await new Promise((r) => setTimeout(r, 500));
+    const r2 = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    status = r2.status;
   }
-  if (status !== "completed") {
-    throw new Error(`Asistente falló con estado: ${status}`);
-  }
+  if (status !== "completed") throw new Error(`Run status: ${status}`);
 
-  // 7) Obtener mensajes y aislar la respuesta del assistant
-  const messages = await openai.beta.threads.messages.list(thread.id);
-  const assistantMsg = messages.data.find((m) => m.role === "assistant");
-  const reply = assistantMsg?.content?.[0]?.text?.value;
-  if (!reply) {
-    throw new Error("El asistente no devolvió texto válido.");
-  }
-
-  // 8) Limpiar referencias de citas y devolver texto final
-  return reply.replace(/【\d+:\d+†source】/g, "").trim();
+  // Recupera respuesta
+  const msgs = await openai.beta.threads.messages.list(thread.id);
+  const assistantMsg = msgs.data.find((m) => m.role === "assistant");
+  return assistantMsg?.content?.[0]?.text?.value.replace(/【\d+:\d+†source】/g, "").trim()
+    || "Lo siento, no pude generar una respuesta.";
 }
+
