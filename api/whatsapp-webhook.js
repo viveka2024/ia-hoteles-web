@@ -1,3 +1,5 @@
+// /api/whatsapp-webhook.js
+
 import fetch from 'node-fetch'
 import { generarRespuestaIA } from './whatsapp-chat.js'
 
@@ -7,6 +9,7 @@ let _lastPayload = null
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN
   const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
+  const BASE_URL     = process.env.NEXT_PUBLIC_BASE_URL  // e.g. https://ia-hoteles-web.vercel.app
 
   // 1) Handshake de verificación (GET)
   if (req.method === 'GET') {
@@ -29,14 +32,30 @@ export default async function handler(req, res) {
     _lastPayload = payload
 
     try {
-      const change = payload.entry?.[0]?.changes?.[0]?.value
-      const phoneId = change?.metadata?.phone_number_id
+      const change   = payload.entry?.[0]?.changes?.[0]?.value
+      const phoneId  = change?.metadata?.phone_number_id
       const messages = change?.messages || []
 
       for (const msg of messages) {
         const from = msg.from
         const text = msg.text?.body || ''
+        const ts   = new Date().toISOString()
+
+        // — Grabar el mensaje entrante en la BBDD —
+        await fetch(`${BASE_URL}/api/whatsapp-conversacion`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hotel_id: 'general',
+            from,
+            text,
+            timestamp: ts
+          })
+        })
+
+        // — Generar respuesta con IA y enviarla —
         const reply = await generarRespuestaIA({ from, text })
+
         await fetch(
           `https://graph.facebook.com/v15.0/${phoneId}/messages`,
           {
@@ -53,6 +72,18 @@ export default async function handler(req, res) {
             })
           }
         )
+
+        // — Grabar la respuesta del bot en la BBDD —
+        await fetch(`${BASE_URL}/api/whatsapp-conversacion`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hotel_id: 'general',
+            from: 'bot',
+            text: reply,
+            timestamp: new Date().toISOString()
+          })
+        })
       }
     } catch (err) {
       console.error('Error procesando webhook:', err)
@@ -65,5 +96,6 @@ export default async function handler(req, res) {
   res.setHeader('Allow', ['GET','POST'])
   return res.status(405).end(`Method ${req.method} Not Allowed`)
 }
+
 
 
