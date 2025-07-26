@@ -1,5 +1,4 @@
 // /api/whatsapp-webhook.js
-
 import fetch from 'node-fetch'
 import { generarRespuestaIA } from './whatsapp-chat.js'
 
@@ -9,17 +8,21 @@ let _lastPayload = null
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN
   const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
-  const BASE_URL     = process.env.NEXT_PUBLIC_BASE_URL  // e.g. https://ia-hoteles-web.vercel.app
+  const BASE_URL     = process.env.BASE_URL         // tu URL de Vercel
 
   // 1) Handshake de verificación (GET)
   if (req.method === 'GET') {
-    const { 'hub.mode': mode, 'hub.verify_token': token, 'hub.challenge': challenge, debug } = req.query
+    const { 
+      'hub.mode': mode, 
+      'hub.verify_token': token, 
+      'hub.challenge': challenge, 
+      debug 
+    } = req.query
 
-    // debug: consultar último payload
     if (debug === 'true') {
       return res.status(200).json(_lastPayload || { message: 'No hay payload aún' })
     }
-    // validación normal
+
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       return res.status(200).send(challenge)
     }
@@ -46,7 +49,7 @@ export default async function handler(req, res) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            hotel_id: 'general',
+            hotel_id: 'general',  // o el que corresponda
             from,
             text,
             timestamp: ts
@@ -92,7 +95,6 @@ export default async function handler(req, res) {
     return res.status(200).end()
   }
 
-  // Métodos no permitidos
   res.setHeader('Allow', ['GET','POST'])
   return res.status(405).end(`Method ${req.method} Not Allowed`)
 }
