@@ -2,21 +2,20 @@
 import fetch from 'node-fetch'
 import { generarRespuestaIA } from './whatsapp-chat.js'
 
-// Buffer en memoria para debug rápido vía ?debug=true
 let _lastPayload = null
 
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN
   const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
-  const BASE_URL     = process.env.BASE_URL         // tu URL de Vercel
+  const BASE_URL     = process.env.BASE_URL
 
-  // 1) Handshake de verificación (GET)
+  // 1) Verificación (GET)
   if (req.method === 'GET') {
-    const { 
-      'hub.mode': mode, 
-      'hub.verify_token': token, 
-      'hub.challenge': challenge, 
-      debug 
+    const {
+      'hub.mode': mode,
+      'hub.verify_token': token,
+      'hub.challenge': challenge,
+      debug
     } = req.query
 
     if (debug === 'true') {
@@ -26,10 +25,11 @@ export default async function handler(req, res) {
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       return res.status(200).send(challenge)
     }
+
     return res.status(403).send('Forbidden')
   }
 
-  // 2) Recepción de eventos (POST)
+  // 2) Webhook (POST)
   if (req.method === 'POST') {
     const payload = req.body
     _lastPayload = payload
@@ -44,21 +44,22 @@ export default async function handler(req, res) {
         const text = msg.text?.body || ''
         const ts   = new Date().toISOString()
 
-        // — Grabar el mensaje entrante en la BBDD —
+        // — Grabar solo la pregunta del usuario —
         await fetch(`${BASE_URL}/api/whatsapp-conversacion`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            hotel_id: 'general',  // o el que corresponda
+            hotel_id: 'general',
             from,
             text,
             timestamp: ts
           })
         })
 
-        // — Generar respuesta con IA y enviarla —
+        // — Generar respuesta con IA —
         const reply = await generarRespuestaIA({ from, text })
 
+        // — Enviar respuesta por WhatsApp —
         await fetch(
           `https://graph.facebook.com/v15.0/${phoneId}/messages`,
           {
@@ -76,17 +77,7 @@ export default async function handler(req, res) {
           }
         )
 
-        // — Grabar la respuesta del bot en la BBDD —
-        await fetch(`${BASE_URL}/api/whatsapp-conversacion`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            hotel_id: 'general',
-            from: 'bot',
-            text: reply,
-            timestamp: new Date().toISOString()
-          })
-        })
+        // No grabamos la respuesta del bot en Supabase
       }
     } catch (err) {
       console.error('Error procesando webhook:', err)
@@ -98,6 +89,7 @@ export default async function handler(req, res) {
   res.setHeader('Allow', ['GET','POST'])
   return res.status(405).end(`Method ${req.method} Not Allowed`)
 }
+
 
 
 
