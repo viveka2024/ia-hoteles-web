@@ -1,28 +1,33 @@
+<!-- public/webhook-debug.html -->
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>WhatsApp Webhook Debug</title>
+  <title>Debug Webhook WhatsApp</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    pre { background: #f0f0f0; padding: .5rem; overflow: auto; max-height: 70vh; }
+    body { font-family: sans-serif; padding: 2rem; }
+    pre { background: #f0f0f0; padding: 1rem; border-radius: 4px; max-height: 80vh; overflow: auto; }
+    button { margin-bottom: 1rem; padding: .5rem 1rem; font-size: 1rem; }
   </style>
 </head>
 <body>
-  <h1>Últimos Webhook Events</h1>
-  <pre id="events">Cargando…</pre>
+  <h1>Último payload de WhatsApp</h1>
+  <button id="refresh">🔄 Refrescar</button>
+  <pre id="output">Cargando…</pre>
+
   <script>
-    async function loadEvents() {
+    async function load() {
       try {
-        const res = await fetch('/api/whatsapp-events')
+        const res = await fetch('/api/whatsapp-webhook?debug=true')
         const data = await res.json()
-        document.getElementById('events').textContent = JSON.stringify(data, null, 2)
+        document.getElementById('output').textContent = JSON.stringify(data, null, 2)
       } catch (e) {
-        document.getElementById('events').textContent = 'Error al cargar: ' + e
+        document.getElementById('output').textContent = 'Error cargando payload'
       }
     }
-    loadEvents()
-    setInterval(loadEvents, 5000)
+    document.getElementById('refresh').onclick = load
+    load()
   </script>
 </body>
 </html>
